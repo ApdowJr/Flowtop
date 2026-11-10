@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:go_router/go_router.dart';
 
