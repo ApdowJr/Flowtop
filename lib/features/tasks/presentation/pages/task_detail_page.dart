@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
+import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_loading.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
@@ -16,7 +17,7 @@ class TaskDetailPage extends ConsumerWidget {
   final String taskId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final taskAsync = ref.watch(taskProvider(taskId));
 
     return taskAsync.when(
