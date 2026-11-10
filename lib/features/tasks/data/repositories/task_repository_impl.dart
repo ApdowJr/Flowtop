@@ -33,7 +33,7 @@ class TaskRepositoryImpl implements TaskRepository {
     TaskPriority? priority,
     String? query,
   }) async* {
-    var queryRef = _tasksRef(workspaceId);
+    Query<Map<String, dynamic>> queryRef = _tasksRef(workspaceId);
     // Firestore supports at most one range/inquality filter; client-side filter
     // for text search after fetching (bounded by Security Rules page size).
     if (projectId != null) queryRef = queryRef.where('projectId', isEqualTo: projectId);
@@ -85,7 +85,7 @@ class TaskRepositoryImpl implements TaskRepository {
     String? projectId,
     String? assigneeId,
   }) async {
-    var ref = _tasksRef(workspaceId);
+    Query<Map<String, dynamic>> ref = _tasksRef(workspaceId);
     if (projectId != null) ref = ref.where('projectId', isEqualTo: projectId);
     if (assigneeId != null) ref = ref.where('assigneeId', isEqualTo: assigneeId);
     final snapshot = await ref.get();
