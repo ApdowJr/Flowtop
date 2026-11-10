@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_loading.dart';
+import 'package:flowtop/core/widgets/app_text_field.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
@@ -30,7 +31,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final selectedWorkspaceId = ref.watch(selectedWorkspaceProvider);
 
