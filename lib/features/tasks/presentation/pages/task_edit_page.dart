@@ -150,7 +150,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                   children: TaskPriority.values.map((p) => ChoiceChip(
                     label: Text(p.label),
                     selected: _priority == p,
-                    selectedColor: p.color.withOpacity(0.15),
+                    selectedColor: p.color.withValues(alpha: 0.15),
                     checkmarkColor: p.color,
                     labelStyle: TextStyle(color: _priority == p ? p.color : AppColors.textSecondary),
                     onSelected: (_) => setState(() => _priority = p),
