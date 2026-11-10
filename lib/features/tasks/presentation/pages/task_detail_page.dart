@@ -17,7 +17,7 @@ class TaskDetailPage extends ConsumerWidget {
   final String taskId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final taskAsync = ref.watch(taskProvider(taskId));
 
     return taskAsync.when(
