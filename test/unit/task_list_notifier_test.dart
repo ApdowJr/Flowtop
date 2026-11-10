@@ -5,9 +5,8 @@ import 'package:flowtop/features/tasks/data/repositories/task_repository_impl.da
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
 import 'package:flowtop/features/tasks/domain/repositories/task_repository.dart';
 import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
-import 'package:flowtop/features/projects/data/repositories/project_repository_impl.dart';
-import 'package:flowtop/features/projects/domain/entities/project_entity.dart';
 import 'package:flowtop/features/projects/domain/repositories/project_repository.dart';
+import 'package:flowtop/features/projects/presentation/providers/project_provider.dart';
 
 class MockTaskRepository extends Mock implements TaskRepository {}
 
@@ -47,7 +46,7 @@ void main() {
       );
 
       // Prevent ProjectListNotifier._watch() from throwing on null stream
-      when(() => mockProjectRepository.watchProjects(any))
+      when(() => mockProjectRepository.watchProjects(any()))
           .thenAnswer((_) => Stream.value([]));
     });
 
@@ -58,7 +57,7 @@ void main() {
     test('createTask recalculates progress when task has projectId', () async {
       final task = _task(projectId: 'p1');
 
-      when(() => mockTaskRepository.createTask(any))
+      when(() => mockTaskRepository.createTask(any()))
           .thenAnswer((_) async => 't1');
       when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);
@@ -79,13 +78,13 @@ void main() {
       final notifier = container.read(taskListProvider('ws1').notifier);
       await notifier.createTask(task);
 
-      verifyNever(() => mockProjectRepository.recalculateProgress(any, any));
+      verifyNever(() => mockProjectRepository.recalculateProgress(any(), any()));
     });
 
     test('updateTask recalculates progress when task has projectId', () async {
       final task = _task(id: 't1', projectId: 'p1');
 
-      when(() => mockTaskRepository.updateTask('t1', any))
+      when(() => mockTaskRepository.updateTask('t1', any()))
           .thenAnswer((_) async => null);
       when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);
