@@ -118,7 +118,7 @@ class _NotificationTile extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
+          color: AppColors.primary.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: _iconForType(notification.type),
@@ -161,7 +161,7 @@ class _NotificationTile extends ConsumerWidget {
               ),
             )
           : null,
-      tileColor: isRead ? null : AppColors.primary.withOpacity(0.03),
+      tileColor: isRead ? null : AppColors.primary.withValues(alpha: 0.03),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: () async {
         if (!isRead) {
