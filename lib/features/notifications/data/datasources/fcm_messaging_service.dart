@@ -60,7 +60,7 @@ class FcmMessagingService {
         _deactivateAllTokens();
       } else {
         // User signed in — ensure token is registered.
-        _registerCurrentToken();
+        _registerCurrentToken(null);
       }
     });
 
