@@ -33,12 +33,11 @@ final fcmTokensProvider = StreamProvider.family<List<FcmTokenEntity>, String>(
 
 /// Notifier that initializes FCM when the user signs in.
 class FcmInitializerNotifier extends StateNotifier<bool> {
-  FcmInitializerNotifier(this._ref, this._userId) : super(false) {
+  FcmInitializerNotifier(this._ref, String userId) : super(false) {
     _initialize();
   }
 
   final Ref _ref;
-  final String _userId;
   StreamSubscription? _authSubscription;
 
   Future<void> _initialize() async {
@@ -110,7 +109,7 @@ final unreadCountProvider = StreamProvider.family<int, String>(
 
 /// Mark a notification as read.
 final markNotificationReadProvider =
-    Provider.family<void Function(String notificationId), String>((ref, userId) {
+    Provider.family<Future<void> Function(String notificationId), String>((ref, userId) {
   return (notificationId) async {
     await FirebaseFirestore.instance
         .collection('users')
