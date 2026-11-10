@@ -28,7 +28,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.surfaceDark,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -37,7 +37,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
@@ -50,7 +50,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
               child: const Icon(
                 Icons.rocket_launch,
                 size: 48,
-                color: Colors.white,
+                color: AppColors.onPrimary,
               ),
             ),
             const SizedBox(height: 24),

@@ -37,17 +37,19 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
         yield const [];
         return;
       }
-      final workspaceIds = memberSnapshot.docs
-          .map((doc) => doc.data()['workspaceId'] as String?)
-          .whereType<String>()
-          .toSet();
+      final roles = {
+        for (final doc in memberSnapshot.docs)
+          if (doc.ref.parent.parent != null)
+            doc.ref.parent.parent!.id: WorkspaceMemberModel.fromMap(doc.id, doc.data()).toEntity().role,
+      };
+      final workspaceIds = roles.keys;
 
       final workspaces = await Future.wait(
         workspaceIds.map((id) => _workspaceDoc(id).get()),
       );
       yield workspaces
           .where((doc) => doc.exists)
-          .map((doc) => WorkspaceModel.fromMap(doc.id, doc.data()!).toEntity())
+          .map((doc) => WorkspaceModel.fromMap(doc.id, doc.data()!).toEntity().copyWith(role: roles[doc.id]))
           .toList();
     });
   }
@@ -61,17 +63,19 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
 
     if (memberSnapshot.docs.isEmpty) return const [];
 
-    final workspaceIds = memberSnapshot.docs
-        .map((doc) => doc.data()['workspaceId'] as String?)
-        .whereType<String>()
-        .toSet();
+    final roles = {
+      for (final doc in memberSnapshot.docs)
+        if (doc.ref.parent.parent != null)
+          doc.ref.parent.parent!.id: WorkspaceMemberModel.fromMap(doc.id, doc.data()).toEntity().role,
+    };
+    final workspaceIds = roles.keys;
 
     final workspaces = await Future.wait(
       workspaceIds.map((id) => _workspaceDoc(id).get()),
     );
     return workspaces
         .where((doc) => doc.exists)
-        .map((doc) => WorkspaceModel.fromMap(doc.id, doc.data()!).toEntity())
+        .map((doc) => WorkspaceModel.fromMap(doc.id, doc.data()!).toEntity().copyWith(role: roles[doc.id]))
         .toList();
   }
 

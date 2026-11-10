@@ -100,6 +100,12 @@ service cloud.firestore {
       allow delete: if isWorkspaceOwner(workspaceId);
     }
 
+    // Collection-group queries may list only the caller's own membership records.
+    // This enables discovery of their workspaces without exposing other users.
+    match /{path=**}/members/{memberId} {
+      allow list: if isSignedIn() && resource.data.userId == getUserId();
+    }
+
     // ============ workspaces/{workspaceId}/members ============
     match /workspaces/{workspaceId}/members/{memberId} {
       allow read: if isWorkspaceMember(workspaceId);

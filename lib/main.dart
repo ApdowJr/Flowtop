@@ -41,13 +41,6 @@ class FlowTopApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme(),
       themeMode: themeMode,
       routerConfig: AppRouter.router,
-      builder: (context, child) {
-        // Ensure consistent text scaling and accessibility behavior.
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
-          child: child!,
-        );
-      },
     );
   }
 }

@@ -51,12 +51,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               AppStrings.resetPassword,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -109,12 +109,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   children: [
                     const Icon(Icons.mark_email_read, size: 56, color: AppColors.success),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Reset link sent',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),

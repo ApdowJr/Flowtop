@@ -20,6 +20,7 @@ class _ProjectCreatePageState extends ConsumerState<ProjectCreatePage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -29,7 +30,7 @@ class _ProjectCreatePageState extends ConsumerState<ProjectCreatePage> {
   }
 
   Future<void> _create() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
 
     final user = ref.read(currentUserProvider);
     final workspaceId = ref.read(selectedWorkspaceProvider);
@@ -58,8 +59,9 @@ class _ProjectCreatePageState extends ConsumerState<ProjectCreatePage> {
       return;
     }
 
+    setState(() => _saving = true);
     try {
-      await ref.read(projectListProvider(workspaceId).notifier).createProject(
+      await ref.read(projectRepositoryProvider).createProject(
         ProjectEntity(
           id: '',
           name: _nameController.text.trim(),
@@ -79,6 +81,8 @@ class _ProjectCreatePageState extends ConsumerState<ProjectCreatePage> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -124,7 +128,7 @@ class _ProjectCreatePageState extends ConsumerState<ProjectCreatePage> {
                     textInputAction: TextInputAction.done,
                   ),
                   const SizedBox(height: 30),
-                  AppButton(text: AppStrings.create, onPressed: _create),
+                  AppButton(text: AppStrings.create, loading: _saving, onPressed: _create),
                 ],
               ),
             ),

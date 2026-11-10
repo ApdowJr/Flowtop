@@ -40,10 +40,15 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     }
 
     if (selectedWorkspaceId == null) {
-      return const AppEmptyState(
-        title: 'No workspace selected',
-        subtitle: 'Please select a workspace from the Workspaces tab.',
-        icon: Icons.workspaces_outlined,
+      return Scaffold(
+        appBar: AppBar(title: const Text(AppStrings.tasks)),
+        body: AppEmptyState(
+          title: 'Choose your workspace',
+          subtitle: 'Select or create a workspace to see your tasks.',
+          icon: Icons.workspaces_outlined,
+          actionLabel: 'Choose workspace',
+          action: () => context.go(AppRoutes.workspaces),
+        ),
       );
     }
 
@@ -66,26 +71,28 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       body: tasksAsync.when(
         data: (tasks) {
           final filtered = _applyFilter(tasks, filter);
-          if (filtered.isEmpty) {
-            return AppEmptyState(
-              title: AppStrings.noItems,
-              subtitle: 'Create your first task to get started.',
-              icon: Icons.task_outlined,
-              action: () => context.go(AppRoutes.taskCreate),
-              actionLabel: AppStrings.addTask,
-            );
-          }
+          final hasFilter = filter.status != null || filter.priority != null ||
+              (filter.query?.isNotEmpty ?? false);
           return Column(
             children: [
               _buildSearchAndFilter(context, ref, workspaceId, filter),
               Expanded(
-                child: ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final task = filtered[index];
-                    return _TaskCard(task: task, workspaceId: workspaceId);
-                  },
-                ),
+                child: filtered.isEmpty
+                    ? AppEmptyState(
+                        title: hasFilter ? 'No matching tasks' : 'No tasks yet',
+                        subtitle: hasFilter ? 'Try a different search or clear the filters.' : 'Create your first task to get started.',
+                        icon: hasFilter ? Icons.search_off_rounded : Icons.task_alt_rounded,
+                        action: hasFilter ? () {
+                          _searchController.clear();
+                          ref.read(taskFilterProvider(workspaceId).notifier).state = const TaskFilter();
+                        } : () => context.go(AppRoutes.taskCreate),
+                        actionLabel: hasFilter ? 'Clear filters' : AppStrings.addTask,
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 90),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) => _TaskCard(task: filtered[index], workspaceId: workspaceId),
+                      ),
               ),
             ],
           );
@@ -106,7 +113,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   Widget _buildSearchAndFilter(BuildContext context, WidgetRef ref, String workspaceId, TaskFilter filter) {
     return Container(
-      color: Theme.of(context).cardTheme.color,
+      color: Theme.of(context).scaffoldBackgroundColor,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,21 +135,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 label: AppStrings.allTasks,
                 selected: filter.status == null && filter.priority == null,
                 onSelected: () => ref.read(taskFilterProvider(workspaceId).notifier).state =
-                    const TaskFilter(),
+                    TaskFilter(query: filter.query),
               ),
               ...TaskStatus.values.map((s) => _FilterChip(
                     label: s.label,
                     selected: filter.status == s,
-                    color: s.color,
                     onSelected: () => ref.read(taskFilterProvider(workspaceId).notifier).state =
-                        filter.copyWith(status: s),
+                        TaskFilter(status: s, query: filter.query),
                   )),
               ...TaskPriority.values.map((p) => _FilterChip(
                     label: p.label,
                     selected: filter.priority == p,
-                    color: p.color,
                     onSelected: () => ref.read(taskFilterProvider(workspaceId).notifier).state =
-                        filter.copyWith(priority: p),
+                        TaskFilter(priority: p, query: filter.query),
                   )),
             ],
           ),
@@ -167,13 +172,11 @@ class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
     required this.selected,
-    this.color,
     required this.onSelected,
   });
 
   final String label;
   final bool selected;
-  final Color? color;
   final VoidCallback onSelected;
 
   @override
@@ -186,14 +189,14 @@ class _FilterChip extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: selected ? Colors.white : AppColors.textSecondary,
+          color: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
-      backgroundColor: AppColors.surfaceVariant,
-      selectedColor: color ?? AppColors.primary,
-      checkmarkColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
+      selectedColor: Theme.of(context).colorScheme.primary,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimary,
       side: BorderSide(
-        color: selected ? (color ?? AppColors.primary) : AppColors.divider,
+        color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -218,7 +221,7 @@ class _TaskCard extends ConsumerWidget {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: task.status == TaskStatus.done ? Colors.transparent : Colors.white,
+            color: Colors.transparent,
             border: Border.all(
               color: task.status == TaskStatus.done ? AppColors.success : AppColors.divider,
               width: 2,
@@ -234,7 +237,7 @@ class _TaskCard extends ConsumerWidget {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 15,
-            color: task.status == TaskStatus.done ? AppColors.textSecondary : AppColors.textPrimary,
+            color: task.status == TaskStatus.done ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
             decoration: task.status == TaskStatus.done
                 ? TextDecoration.lineThrough
                 : TextDecoration.none,

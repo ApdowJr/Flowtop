@@ -69,6 +69,9 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
+      - name: Test updated dashboard and workspace UI
+        run: flutter test test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart
+
       - name: Build debug APK
         run: flutter build apk --debug
 

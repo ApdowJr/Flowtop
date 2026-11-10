@@ -35,6 +35,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
+    if (mounted && ref.read(authProvider).valueOrNull != null) {
+      context.go(AppRoutes.dashboard);
+    }
   }
 
   Future<void> _signInWithGoogle() async {
@@ -58,6 +61,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         idToken: idToken,
         accessToken: accessToken,
       );
+      if (mounted && ref.read(authProvider).valueOrNull != null) {
+        context.go(AppRoutes.dashboard);
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -119,9 +125,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Welcome back to flowTop',
-                style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 32),
               AppTextField(
@@ -133,7 +139,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 controller: _emailController,
                 validator: (value) {
                   if (value == null || value.isEmpty) return AppStrings.emailRequired;
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) {
                     return AppStrings.validEmail;
                   }
                   return null;
@@ -146,6 +152,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 icon: Icons.lock_outlined,
                 obscureText: _obscure,
                 suffixIcon: IconButton(
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
                   icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
@@ -188,7 +195,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   onPressed: loading ? null : () => context.go(AppRoutes.resetPassword),
                   child: Text(
                     AppStrings.forgotPassword,
-                    style: const TextStyle(fontSize: 14, color: AppColors.primary),
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary),
                   ),
                 ),
               ),
@@ -226,10 +233,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              AppButton(
+              AppOutlinedButton(
                 text: AppStrings.signInWithGoogle,
-                icon: const Icon(Icons.g_mobiledata, size: 20),
-                loading: authState.isLoading,
+                icon: const Icon(Icons.g_mobiledata, size: 24),
                 onPressed: loading ? null : _signInWithGoogle,
               ),
             ],

@@ -41,6 +41,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           ? null
           : _displayNameController.text.trim(),
     );
+    if (mounted && ref.read(authProvider).valueOrNull != null) {
+      context.go(AppRoutes.dashboard);
+    }
   }
 
   @override
@@ -64,12 +67,12 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Create account',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -95,7 +98,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 controller: _emailController,
                 validator: (value) {
                   if (value == null || value.isEmpty) return AppStrings.emailRequired;
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) {
                     return AppStrings.validEmail;
                   }
                   return null;
@@ -108,6 +111,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 icon: Icons.lock_outlined,
                 obscureText: _obscure,
                 suffixIcon: IconButton(
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
                   icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
@@ -126,6 +130,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 icon: Icons.lock_outlined,
                 obscureText: _obscure,
                 suffixIcon: IconButton(
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
                   icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),

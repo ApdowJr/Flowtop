@@ -69,10 +69,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       const SizedBox(height: 40),
                       Text(
                         slide.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         textAlign: TextAlign.center,
                       ),

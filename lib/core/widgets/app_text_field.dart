@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flowtop/core/constants/app_constants.dart';
 
 /// Styled text input used across the app.
 class AppTextField extends StatelessWidget {
@@ -55,14 +54,14 @@ class AppTextField extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       onTap: onTap,
       validator: validator,
-      style: const TextStyle(
-        color: AppColors.textPrimary,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
         fontSize: 15,
       ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: icon != null ? Icon(icon, size: 20, color: AppColors.textSecondary) : null,
+        prefixIcon: icon != null ? Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant) : null,
         suffixIcon: suffixIcon,
       ),
     );
