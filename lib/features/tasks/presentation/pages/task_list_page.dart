@@ -7,9 +7,7 @@ import 'package:flowtop/core/widgets/app_text_field.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
 import 'package:flowtop/core/di/injection_container.dart';
-import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
-import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
 
 /// Task list for a workspace with search, filter, priority and status chips.
 class TaskListPage extends ConsumerStatefulWidget {
@@ -272,7 +270,7 @@ class _TaskCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.1),
+                        color: AppColors.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
@@ -293,7 +291,7 @@ class _TaskCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: task.priority.color.withOpacity(0.1),
+                color: task.priority.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
