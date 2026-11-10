@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 
 /// Calendar view with daily/weekly toggles (table_calendar powered).
 class CalendarPage extends StatefulWidget {
