@@ -67,7 +67,7 @@ void main() {
 
       when(() => mockTaskRepository.createTask(any()))
           .thenAnswer((_) async => 't1');
-      when(() => mockProjectRepository.recalculateProgress('p1'))
+      when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);
 
       final notifier = container.read(taskListProvider('ws1').notifier);
@@ -86,7 +86,7 @@ void main() {
       final notifier = container.read(taskListProvider('ws1').notifier);
       await notifier.createTask(task);
 
-      verifyNever(() => mockProjectRepository.recalculateProgress(any()));
+      verifyNever(() => mockProjectRepository.recalculateProgress(any(), any()));
     });
 
     test('updateTask recalculates progress when task has projectId', () async {
@@ -113,7 +113,7 @@ void main() {
       final notifier = container.read(taskListProvider('ws1').notifier);
       await notifier.updateTask('t1', task);
 
-      verifyNever(() => mockProjectRepository.recalculateProgress(any()));
+      verifyNever(() => mockProjectRepository.recalculateProgress(any(), any()));
     });
 
     test('deleteTask recalculates progress when deleted task has projectId',
@@ -171,7 +171,7 @@ void main() {
 
       await notifier.deleteTask('t1');
 
-      verifyNever(() => mockProjectRepository.recalculateProgress(any, any));
+      verifyNever(() => mockProjectRepository.recalculateProgress(any(), any()));
     });
 
     test('toggleCompletion recalculates progress when task has projectId',
@@ -207,7 +207,7 @@ void main() {
         () async {
       final task = _task(id: '', projectId: 'p1');
 
-      when(() => mockTaskRepository.createTask(any))
+      when(() => mockTaskRepository.createTask(any()))
           .thenAnswer((_) async => 't1');
       when(() => mockTaskRepository.watchTasks(
             workspaceId: 'ws1',
@@ -237,7 +237,7 @@ void main() {
         () async {
       final task = _task(id: '', projectId: 'p1');
 
-      when(() => mockTaskRepository.createTask(any))
+      when(() => mockTaskRepository.createTask(any()))
           .thenAnswer((_) async => 't1');
       when(() => mockTaskRepository.watchTasks(
             workspaceId: 'ws1',
