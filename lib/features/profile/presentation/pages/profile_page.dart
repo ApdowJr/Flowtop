@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/core/di/injection_container.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
-import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 
 /// Profile and user preferences screen.
 class ProfilePage extends ConsumerWidget {
