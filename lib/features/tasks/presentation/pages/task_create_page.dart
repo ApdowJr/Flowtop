@@ -6,9 +6,7 @@ import 'package:flowtop/core/widgets/app_text_field.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/core/di/injection_container.dart';
-import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
-import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
 
 /// Create a new task within the selected workspace.
 class TaskCreatePage extends ConsumerStatefulWidget {
@@ -149,7 +147,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                     children: TaskPriority.values.map((p) => ChoiceChip(
                       label: Text(p.label),
                       selected: _priority == p,
-                      selectedColor: p.color.withOpacity(0.15),
+                      selectedColor: p.color.withValues(alpha: 0.15),
                       checkmarkColor: p.color,
                       labelStyle: TextStyle(color: _priority == p ? p.color : AppColors.textSecondary),
                       onSelected: (_) => setState(() => _priority = p),
