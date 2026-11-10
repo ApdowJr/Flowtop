@@ -70,7 +70,7 @@ void main() {
     test('passes owner role correctly', () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any())).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any())).thenAnswer((_) async => MockHttpsCallableResult());
 
       await repository.inviteMember(
         'ws1',
@@ -90,7 +90,7 @@ void main() {
         () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any))
+      when(() => mockCallable.call(any()))
           .thenThrow(FirebaseFunctionsException(
             code: 'permission-denied',
             message: 'Only the owner can grant the owner role.',
@@ -113,7 +113,7 @@ void main() {
 
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any)).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any())).thenAnswer((_) async => MockHttpsCallableResult());
 
       // This test verifies the repository can be constructed without functions.
       // The actual call would use FirebaseFunctions.instance which requires
