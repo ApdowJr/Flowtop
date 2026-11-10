@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:flowtop/features/tasks/data/repositories/task_repository_impl.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
 import 'package:flowtop/features/tasks/domain/repositories/task_repository.dart';
 import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
@@ -48,6 +47,15 @@ void main() {
       // Prevent ProjectListNotifier._watch() from throwing on null stream
       when(() => mockProjectRepository.watchProjects(any()))
           .thenAnswer((_) => Stream.value([]));
+
+      when(() => mockTaskRepository.watchTasks(
+            workspaceId: any(named: 'workspaceId'),
+            projectId: any(named: 'projectId'),
+            assigneeId: any(named: 'assigneeId'),
+            status: any(named: 'status'),
+            priority: any(named: 'priority'),
+            query: any(named: 'query'),
+          )).thenAnswer((_) => Stream.value([]));
     });
 
     tearDown(() {
@@ -59,7 +67,7 @@ void main() {
 
       when(() => mockTaskRepository.createTask(any()))
           .thenAnswer((_) async => 't1');
-      when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
+      when(() => mockProjectRepository.recalculateProgress('p1'))
           .thenAnswer((_) async => null);
 
       final notifier = container.read(taskListProvider('ws1').notifier);
@@ -72,13 +80,13 @@ void main() {
     test('createTask does not recalculate when projectId is null', () async {
       final task = _task(projectId: null);
 
-      when(() => mockTaskRepository.createTask(any))
+      when(() => mockTaskRepository.createTask(any()))
           .thenAnswer((_) async => 't1');
 
       final notifier = container.read(taskListProvider('ws1').notifier);
       await notifier.createTask(task);
 
-      verifyNever(() => mockProjectRepository.recalculateProgress(any(), any()));
+      verifyNever(() => mockProjectRepository.recalculateProgress(any()));
     });
 
     test('updateTask recalculates progress when task has projectId', () async {
@@ -99,13 +107,13 @@ void main() {
     test('updateTask does not recalculate when projectId is null', () async {
       final task = _task(id: 't1', projectId: null);
 
-      when(() => mockTaskRepository.updateTask('t1', any))
+      when(() => mockTaskRepository.updateTask('t1', any()))
           .thenAnswer((_) async => null);
 
       final notifier = container.read(taskListProvider('ws1').notifier);
       await notifier.updateTask('t1', task);
 
-      verifyNever(() => mockProjectRepository.recalculateProgress(any, any));
+      verifyNever(() => mockProjectRepository.recalculateProgress(any()));
     });
 
     test('deleteTask recalculates progress when deleted task has projectId',
