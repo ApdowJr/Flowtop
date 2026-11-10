@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
@@ -117,7 +119,10 @@ class TaskListNotifier extends StateNotifier<AsyncValue<List<TaskEntity>>> {
     try {
       await _repository.deleteTask(taskId);
       state = AsyncValue.data(old?.where((t) => t.id != taskId).toList() ?? const []);
-      final deleted = old?.firstWhere((t) => t.id == taskId, orElse: () => null);
+      TaskEntity? deleted;
+      if (old != null) {
+        for (final item in old) { if (item.id == taskId) { deleted = item; break; } }
+      }
       if (deleted?.projectId != null) {
         _ref
             .read(projectListProvider(_workspaceId).notifier)
@@ -134,7 +139,10 @@ class TaskListNotifier extends StateNotifier<AsyncValue<List<TaskEntity>>> {
     try {
       await _repository.toggleTaskCompletion(taskId, completed);
       state = AsyncValue.data(old ?? const []);
-      final task = old?.firstWhere((t) => t.id == taskId, orElse: () => null);
+      TaskEntity? task;
+      if (old != null) {
+        for (final item in old) { if (item.id == taskId) { task = item; break; } }
+      }
       if (task?.projectId != null) {
         _ref
             .read(projectListProvider(_workspaceId).notifier)
