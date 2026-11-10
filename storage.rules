@@ -1,0 +1,71 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserId() {
+      return request.auth.uid;
+    }
+
+    // Max file size: 10 MB.
+    function isSizeOk() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // Allowed MIME types: images, PDFs, common docs.
+    function isMimeOk() {
+      return request.resource.contentType in [
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+        'application/pdf',
+        'text/plain',
+      ];
+    }
+
+    // Validates that the file path starts with the authenticated user's ID.
+    // This ensures a user can only write files under their own userId segment,
+    // preventing them from uploading to another user's workspace path.
+    function pathStartsWithUserId(path) {
+      return path.split('/')[0] == getUserId();
+    }
+
+    // ---------- User profile images ----------
+    // Path: profile_images/{userId}/{fileName}
+    match /profile_images/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && (userId == getUserId())
+        && pathStartsWithUserId(userId + '/' + fileName)
+        && isSizeOk()
+        && isMimeOk();
+    }
+
+    // ---------- Task attachments ----------
+    // Path: task_attachments/{userId}/{workspaceId}/{taskId}/{fileName}
+    // userId is the uploader's ID — enforced by pathStartsWithUserId.
+    match /task_attachments/{userId}/{workspaceId}/{taskId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && pathStartsWithUserId(userId + '/' + workspaceId + '/' + taskId + '/' + fileName)
+        && isSizeOk()
+        && isMimeOk();
+    }
+
+    // ---------- Project files ----------
+    // Path: project_files/{userId}/{workspaceId}/{projectId}/{fileName}
+    match /project_files/{userId}/{workspaceId}/{projectId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && pathStartsWithUserId(userId + '/' + workspaceId + '/' + projectId + '/' + fileName)
+        && isSizeOk()
+        && isMimeOk();
+    }
+
+    // Deny everything else.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

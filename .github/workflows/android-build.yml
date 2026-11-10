@@ -1,0 +1,83 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main, arena/64871141-flowtop]
+  pull_request:
+    branches: [main, arena/64871141-flowtop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Configure Google Services
+        run: |
+          if [ -z "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "Error: GOOGLE_SERVICES_JSON secret is not set. Add it in repository Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > android/app/google-services.json
+          if ! python3 -m json.tool android/app/google-services.json > /dev/null 2>&1; then
+            echo "Error: Decoded android/app/google-services.json is not valid JSON."
+            exit 1
+          fi
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowtop-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+
+      # Release build is conditional on signing secrets being present.
+      - name: Build release APK (if signing configured)
+        if: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+        env:
+          KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
+        run: |
+          echo "$KEY_PROPERTIES" > android/key.properties
+          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > upload-keystore.jks
+          flutter build apk --release
+
+      - name: Build release AAB (if signing configured)
+        if: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+        env:
+          KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
+        run: |
+          echo "$KEY_PROPERTIES" > android/key.properties
+          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > upload-keystore.jks
+          flutter build appbundle --release
+
+      - name: Upload release artifacts
+        if: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowtop-release
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          retention-days: 7

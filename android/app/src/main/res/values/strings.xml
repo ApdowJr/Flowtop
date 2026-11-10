@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">flowTop</string>
+    <string name="launch_screen_background">@color/launch_background</string>
+</resources>
