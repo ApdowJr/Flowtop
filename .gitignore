@@ -1,0 +1,81 @@
+# Flutter / Dart
+*.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.packages
+pubspec.lock
+build/
+
+# Android
+*.iml
+.idea/
+.gradle/
+!gradle/wrapper/gradle-wrapper.properties
+**/.gradle
+**/build/
+**/intermediates/
+**/captures/
+**/excluded/
+**/output.json
+**/local.properties
+**/keystore*
+**/*.jks
+**/*.keystore
+**/*.key
+**/*.pk8
+**/*.pem
+android/app/src/main/java/com/flowtop/app/GeneratedPluginRegistrant.java
+android/local.properties
+
+# iOS
+*.xcodeproj/**
+!*.xcodeproj/project.pbxproj
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.moved-aside
+DerivedData/
+.ios_symlink/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.framework
+ios/Flutter/app.zip
+ios/Runner/AppFrameworkInfo.plist
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Firebase / credentials (NEVER commit secrets)
+.env
+.env.*
+!firebase.example.json
+service-account.json
+*.service-account.json
+firebase-debug.log
+google-services.json
+GoogleService-Info.plist
+
+# OS
+.DS_Store
+Thumbs.db
+Thumbs.db:eh
+$RECYCLE.BIN/
+Desktop.ini
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+*.code-workspace
+
+# Misc
+*.log
+*.orig
+coverage/
+.lint/

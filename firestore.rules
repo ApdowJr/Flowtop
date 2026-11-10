@@ -1,0 +1,248 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============ Helper Functions ============
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserId() {
+      return request.auth.uid;
+    }
+
+    function getUserEmail() {
+      return request.auth.token.email;
+    }
+
+    // True if the requesting user is a member of the workspace.
+    function isWorkspaceMember(workspaceId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(getUserId()));
+    }
+
+    // True if the given UID is a member of the workspace.
+    // Used to verify that task assignees and invited users are workspace members.
+    function isMember(workspaceId, uid) {
+      return exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(uid));
+    }
+
+    // Returns the role of the requesting user in a workspace.
+    // Call only after confirming isWorkspaceMember().
+    function getMemberRole(workspaceId) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(getUserId())).data.role;
+    }
+
+    function isWorkspaceOwnerOrAdmin(workspaceId) {
+      return isWorkspaceMember(workspaceId) &&
+        (getMemberRole(workspaceId) == 'owner' || getMemberRole(workspaceId) == 'admin');
+    }
+
+    function isWorkspaceOwnerAdminOrManager(workspaceId) {
+      return isWorkspaceMember(workspaceId) &&
+        (getMemberRole(workspaceId) == 'owner' ||
+         getMemberRole(workspaceId) == 'admin' ||
+         getMemberRole(workspaceId) == 'manager');
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isWorkspaceMember(workspaceId) && getMemberRole(workspaceId) == 'owner';
+    }
+
+    // ============ users ============
+    // Each user owns exactly one document keyed by their Firebase Auth UID.
+    match /users/{userId} {
+      allow read: if isSignedIn() && (userId == getUserId());
+      allow create: if isSignedIn() && (userId == getUserId());
+      allow update: if isSignedIn()
+        && (userId == getUserId())
+        // uid must match Auth UID and can never be changed.
+        && (request.resource.data.uid == getUserId())
+        // emailVerified can only be set by Firebase Auth, never by client.
+        && (!('emailVerified' in request.resource.data.keys()
+            && request.resource.data.emailVerified != resource.data.emailVerified));
+      allow delete: if false;
+    }
+
+    // ============ users/{userId}/notifications ============
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isSignedIn() && (userId == getUserId());
+      allow create: if isSignedIn() && (userId == getUserId());
+      allow update: if isSignedIn() && (userId == getUserId());
+      allow delete: if isSignedIn() && (userId == getUserId());
+    }
+
+    // ============ users/{userId}/fcm_tokens ============
+    match /users/{userId}/fcm_tokens/{tokenId} {
+      allow read: if isSignedIn() && (userId == getUserId());
+      allow create: if isSignedIn() && (userId == getUserId());
+      allow update: if isSignedIn() && (userId == getUserId());
+      allow delete: if isSignedIn() && (userId == getUserId());
+    }
+
+    // ============ users/{userId}/preferences ============
+    match /users/{userId}/preferences/{prefId} {
+      allow read: if isSignedIn() && (userId == getUserId());
+      allow write: if isSignedIn() && (userId == getUserId());
+    }
+
+    // ============ workspaces ============
+    match /workspaces/{workspaceId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      // On create, the requesting user must be the owner (bound to Auth UID).
+      allow create: if isSignedIn()
+        && (request.resource.data.ownerId == getUserId());
+      // Single update rule: owner/admin may update, but ownerId cannot be changed by non-owners.
+      allow update: if isWorkspaceOwnerOrAdmin(workspaceId)
+        && (!('ownerId' in request.resource.data.keys()
+            && request.resource.data.ownerId != resource.data.ownerId));
+      allow delete: if isWorkspaceOwner(workspaceId);
+    }
+
+    // ============ workspaces/{workspaceId}/members ============
+    match /workspaces/{workspaceId}/members/{memberId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      // Invariant: the member document ID must always equal the userId field.
+      // This prevents creating a member record under one UID while claiming to be another.
+      allow create: if (memberId == request.resource.data.userId)
+        && (
+          // Path A: owner/admin/manager may create member records.
+          // Only the owner may create an owner-role member (no role escalation to owner).
+          (isWorkspaceOwnerAdminOrManager(workspaceId)
+            && (request.resource.data.role != 'owner'
+                || getMemberRole(workspaceId) == 'owner'))
+          // Path B: bootstrap exception — the workspace owner may create their own owner
+          // membership when creating a new workspace. The workspace document is created
+          // first (step 1), then the owner membership record (step 2). The workspace's
+          // ownerId must equal the requesting user's Auth UID, so a user can never make
+          // themselves owner of an existing workspace they do not own.
+          || (request.resource.data.userId == getUserId()
+              && request.resource.data.role == 'owner'
+              && request.resource.data.workspaceId == workspaceId
+              && exists(/databases/$(database)/documents/workspaces/$(workspaceId))
+              && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == getUserId())
+        );
+      // Owner can change any role. Admin can change non-owner roles only.
+      // Members/viewers cannot change roles (blocked by isWorkspaceOwnerOrAdmin).
+      allow update: if isWorkspaceOwnerOrAdmin(workspaceId)
+        && (getMemberRole(workspaceId) == 'owner' || request.resource.data.role != 'owner');
+      // Owner/admin may remove members. Non-owners cannot remove owners.
+      // A user cannot remove themselves if they are the owner (prevents orphan workspaces).
+      allow delete: if isWorkspaceOwnerOrAdmin(workspaceId)
+        && (getMemberRole(workspaceId) == 'owner' || resource.data.role != 'owner')
+        && (memberId != getUserId() || getMemberRole(workspaceId) != 'owner');
+    }
+
+    // ============ workspaces/{workspaceId}/invitations ============
+    match /workspaces/{workspaceId}/invitations/{invitationId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      // Only owner/admin/manager may create invitations. Expiration must be future.
+      // Only the owner may grant the owner role via invitation.
+      allow create: if isWorkspaceOwnerAdminOrManager(workspaceId)
+        && (request.resource.data.expiresAt != null
+            && request.resource.data.expiresAt > request.time)
+        && (request.resource.data.role != 'owner' || getMemberRole(workspaceId) == 'owner');
+      // Invited email accepts/declines:
+      //   - Must be the authenticated invited email (getUserEmail() == invitation.email).
+      //   - Invitation must still be pending and unexpired.
+      //   - Only the status field may change (affectedKeys().hasOnly(['status'])).
+      //   - New status must be 'accepted' or 'declined' and must differ from current.
+      // Privileged members may manage invitations fully.
+      // Note: isWorkspaceMember() is NOT required for the invited-email path, because the
+      // invited user is not yet a member when accepting.
+      allow update: if (
+        (getUserEmail() != null
+          && getUserEmail() == resource.data.email
+          && resource.data.status == 'pending'
+          && resource.data.expiresAt > request.time
+          && request.resource.data.status in ['accepted', 'declined']
+          && request.resource.data.status != resource.data.status
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        || (isWorkspaceMember(workspaceId) && isWorkspaceOwnerAdminOrManager(workspaceId))
+      );
+      allow delete: if isWorkspaceOwnerAdminOrManager(workspaceId);
+    }
+
+    // ============ workspaces/{workspaceId}/projects ============
+    match /workspaces/{workspaceId}/projects/{projectId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      // On create, owner must be the requesting user unless caller has assign rights.
+      allow create: if isWorkspaceOwnerAdminOrManager(workspaceId)
+        && (request.resource.data.ownerId == getUserId()
+            || isWorkspaceOwnerOrAdmin(workspaceId));
+      allow update: if isWorkspaceOwnerAdminOrManager(workspaceId);
+      allow delete: if isWorkspaceOwnerOrAdmin(workspaceId);
+    }
+
+    // ============ workspaces/{workspaceId}/tasks ============
+    match /workspaces/{workspaceId}/tasks/{taskId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      // Owner must be the requesting user unless caller has assign rights.
+      // Task assignee (if set) must be a workspace member.
+      allow create: if isWorkspaceMember(workspaceId)
+        && (request.resource.data.ownerId == getUserId()
+            || isWorkspaceOwnerAdminOrManager(workspaceId))
+        && (!('assigneeId' in request.resource.data.keys()
+            && request.resource.data.assigneeId != null
+            && !isMember(workspaceId, request.resource.data.assigneeId)));
+      // Owner, assignee, or privileged roles may update.
+      // Protected fields: ownerId, assigneeId, workspaceId cannot be changed by non-privileged users.
+      // New assignee must be a workspace member.
+      allow update: if isWorkspaceMember(workspaceId)
+        && (resource.data.ownerId == getUserId()
+            || resource.data.assigneeId == getUserId()
+            || isWorkspaceOwnerAdminOrManager(workspaceId))
+        && (!('ownerId' in request.resource.data.keys()
+            && request.resource.data.ownerId != resource.data.ownerId
+            && !isWorkspaceOwnerAdminOrManager(workspaceId)))
+        && (!('assigneeId' in request.resource.data.keys()
+            && request.resource.data.assigneeId != resource.data.assigneeId
+            && !isWorkspaceOwnerAdminOrManager(workspaceId)))
+        && (!('workspaceId' in request.resource.data.keys()
+            && request.resource.data.workspaceId != resource.data.workspaceId))
+        && (!('assigneeId' in request.resource.data.keys()
+            && request.resource.data.assigneeId != null
+            && !isMember(workspaceId, request.resource.data.assigneeId)));
+      // Owner/admin may delete any task; task owner may delete their own task.
+      allow delete: if isWorkspaceOwnerOrAdmin(workspaceId)
+        || resource.data.ownerId == getUserId();
+    }
+
+    // ============ workspaces/{workspaceId}/tasks/{taskId}/subtasks ============
+    match /workspaces/{workspaceId}/tasks/{taskId}/subtasks/{subtaskId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isWorkspaceMember(workspaceId);
+      allow update: if isWorkspaceMember(workspaceId);
+      allow delete: if isWorkspaceMember(workspaceId);
+    }
+
+    // ============ workspaces/{workspaceId}/categories ============
+    match /workspaces/{workspaceId}/categories/{categoryId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isWorkspaceMember(workspaceId);
+      allow update: if isWorkspaceOwnerAdminOrManager(workspaceId);
+      allow delete: if isWorkspaceOwnerOrAdmin(workspaceId);
+    }
+
+    // ============ workspaces/{workspaceId}/task_attachments ============
+    match /workspaces/{workspaceId}/task_attachments/{attachmentId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isWorkspaceMember(workspaceId);
+      allow update: if isWorkspaceOwnerAdminOrManager(workspaceId);
+      allow delete: if isWorkspaceOwnerAdminOrManager(workspaceId);
+    }
+
+    // ============ workspaces/{workspaceId}/activity_logs ============
+    match /workspaces/{workspaceId}/activity_logs/{logId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isWorkspaceMember(workspaceId);
+      allow update, delete: if false; // Append-only audit log
+    }
+
+    // ============ Deny by default ============
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

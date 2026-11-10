@@ -1,0 +1,101 @@
+# Firebase Setup — flowTop
+
+This guide walks you through connecting the Flutter app to a Firebase project. No real credentials are included in this repository.
+
+## 1. Create a Firebase project
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. **Add project** → enter `flowtop` → disable Google Analytics (optional) → Create.
+3. Stay on the Spark plan (no billing required for this app).
+
+## 2. Enable Firebase services
+
+In the Firebase Console, enable:
+
+- **Authentication**: Sign-in method → Email/Password (enable), Google (enable, configure OAuth consent screen).
+- **Cloud Firestore**: Create database → Start in test mode (you will replace rules with `firestore.rules`) → choose a location.
+- **Storage**: Get started → default bucket → you will replace rules with `storage.rules`.
+- **Cloud Messaging**: Enable FCM (Android).
+- **App Check**: Enable → register Android app with Play Integrity (optional but recommended).
+
+## 3. Register the Android app
+
+1. In Project settings > General > Your apps, **Add app** → Android.
+2. Package name: `com.flowtop.app` (matches `android/app/build.gradle` `applicationId`).
+3. Register app → download **`google-services.json`**.
+4. Place `google-services.json` at: `android/app/google-services.json`
+
+> `google-services.json` is gitignored. Never commit it.
+
+For iOS (optional): add an iOS app and download `GoogleService-Info.plist` to `ios/Runner/`.
+
+## 4. Configure the Flutter app
+
+1. Add Firebase dependencies (already in `pubspec.yaml`):
+   - firebase_core, firebase_auth, google_sign_in, cloud_firestore,
+   - firebase_storage, firebase_messaging, firebase_app_check
+2. Replace `firebase_options.dart` with your real config values from the Firebase Console (Project settings > General > Your apps > Android > config file snippet).
+
+Example `firebase_options.dart`:
+
+```dart
+static FirebaseOptions get currentPlatform => const FirebaseOptions(
+  apiKey: 'AIzaSy...',
+  appId: '1:123456789:android:...',
+  messagingSenderId: '123456789',
+  projectId: 'flowtop-abc123',
+  storageBucket: 'flowtop-abc123.appspot.com',
+);
+```
+
+3. Initialize Firebase in `main.dart` (already done):
+   ```dart
+   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+   ```
+
+## 5. Deploy Firestore & Storage rules
+
+From the project root:
+
+```bash
+firebase deploy --only firestore:rules,storage:rules,firestore:indexes
+```
+
+This deploys `firestore.rules`, `storage.rules`, and `firestore.indexes.json`.
+
+## 6. Deploy Cloud Functions
+
+```bash
+cd firebase/functions
+npm install
+npm run build
+firebase deploy --only functions
+```
+
+## 7. Enable Firestore offline persistence
+
+In the app, Cloud Firestore persistence is enabled by default on Flutter (cached data + pending writes). No extra client configuration is required for the default `(local)` persistence. See `lib/features/tasks/data/repositories/task_repository_impl.dart` for reads that work offline.
+
+## 8. FCM (push notifications)
+
+1. Add your Android app's SHA-1/SHA-256 certificate fingerprint to Firebase Console (Project settings > Your apps > Android > Certificate fingerprint) — required for Google Sign-In and FCM on real devices.
+2. The app registers an FCM token on startup and stores it in `users/{uid}/fcm_tokens/{token}` (see `lib/features/notifications/`).
+3. Cloud Functions dispatch notifications server-side using Admin SDK — clients never send arbitrary privileged notifications.
+
+## Directory & file checklist
+
+| File | Purpose |
+|------|---------|
+| `firebase.json` | Emulator + hosting + functions config |
+| `firestore.rules` | Production Firestore security rules |
+| `storage.rules` | Production Storage security rules |
+| `firestore.indexes.json` | Required composite indexes |
+| `emulators.json` | Local emulator ports |
+| `firebase/functions/` | TypeScript Cloud Functions |
+| `test/firestore_rules.test.js` | Security rules tests (emulator) |
+
+## Troubleshooting
+
+- `firebase_options.dart` placeholder values → replace with real config or Firestore/Auth will fail to initialize.
+- Google Sign-In fails → add SHA-1 fingerprint, enable Google provider, configure OAuth consent screen.
+- Rules rejected → ensure `firestore.rules` starts with `rules_version = '2';`.
