@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_functions/firebase_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
 import 'package:flowtop/features/workspaces/domain/repositories/workspace_repository.dart';
 import 'package:flowtop/features/workspaces/data/models/workspace_model.dart';

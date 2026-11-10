@@ -23,7 +23,7 @@ dependencies:
   firebase_storage: ^11.6.0
   firebase_messaging: ^14.7.0
   firebase_app_check: ^0.13.0
-  firebase_functions: ^5.0.0
+  cloud_functions: ^4.2.0
 
   # Local storage / caching
   shared_preferences: ^2.2.2
