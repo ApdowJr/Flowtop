@@ -7,6 +7,7 @@ abstract class WorkspaceRepository {
   Future<void> updateWorkspace(String workspaceId, WorkspaceEntity workspace);
   Future<void> deleteWorkspace(String workspaceId);
   Stream<List<WorkspaceMemberEntity>> watchMembers(String workspaceId);
+  Future<List<WorkspaceMemberEntity>> getMembers(String workspaceId);
   Future<void> inviteMember(String workspaceId, String email, WorkspaceRole role, {required String invitedBy});
   Future<void> changeMemberRole(String workspaceId, String userId, WorkspaceRole role);
   Future<void> removeMember(String workspaceId, String userId);
