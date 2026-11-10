@@ -82,7 +82,17 @@ jobs:
           exit "$status"
 
       - name: Test updated dashboard and workspace UI
-        run: flutter test test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart
+        run: |
+          set +e
+          flutter test --reporter expanded test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart > /tmp/flowtop-tests.txt 2>&1
+          status=$?
+          cat /tmp/flowtop-tests.txt
+          if [ "$status" -ne 0 ]; then
+            while IFS= read -r line; do
+              if [ -n "$line" ]; then echo "::error::$line"; fi
+            done < /tmp/flowtop-tests.txt
+          fi
+          exit "$status"
 
       - name: Build debug APK
         run: flutter build apk --debug
