@@ -2,9 +2,10 @@ name: Android Build
 
 on:
   push:
-    branches: [main, arena/64871141-flowtop]
+    branches: [main, arena/64871141-flowtop, fix/stable-google-signing-and-android-check]
   pull_request:
     branches: [main, arena/64871141-flowtop]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -56,6 +57,12 @@ jobs:
             exit 1
           fi
 
+      - name: Restore stable Android debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: flowtop-android-debug-keystore-v1
+
       - name: Get dependencies
         run: flutter pub get
 
@@ -65,8 +72,7 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug
 
-      # Export the exact certificate fingerprints used to sign this CI debug APK.
-      # Register these in Firebase Console > Project settings > Your Android app.
+      # Export the exact certificate fingerprints used by this CI debug APK.
       - name: Export debug signing fingerprints
         run: |
           mkdir -p "$HOME/.android" build/app/outputs/flutter-apk
@@ -86,6 +92,40 @@ jobs:
             | grep -E 'SHA1:|SHA256:' \
             | tee build/app/outputs/flutter-apk/debug-signing-fingerprints.txt
           test -s build/app/outputs/flutter-apk/debug-signing-fingerprints.txt
+
+      - name: Check Firebase OAuth configuration
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, re, sys
+          config = json.loads(pathlib.Path("android/app/google-services.json").read_text())
+          expected_project = "flowtop-e68b6"
+          expected_package = "com.flowtop.app"
+          if config.get("project_info", {}).get("project_id") != expected_project:
+              sys.exit("ERROR: google-services.json belongs to a different Firebase project.")
+          clients = config.get("client", [])
+          app = next((c for c in clients if c.get("client_info", {}).get("android_client_info", {}).get("package_name") == expected_package), None)
+          if app is None:
+              sys.exit("ERROR: google-services.json has no Android client for com.flowtop.app.")
+          oauth = app.get("oauth_client", [])
+          web_client = any(c.get("client_type") == 3 for c in oauth)
+          android_clients = [c for c in oauth if c.get("client_type") == 1]
+          text = pathlib.Path("build/app/outputs/flutter-apk/debug-signing-fingerprints.txt").read_text()
+          match = re.search(r"SHA1:\s*([0-9A-F:]+)", text, re.I)
+          sha1 = match.group(1).replace(":", "").lower() if match else ""
+          registered = any(
+              c.get("android_info", {}).get("package_name") == expected_package
+              and c.get("android_info", {}).get("certificate_hash", "").lower() == sha1
+              for c in android_clients
+          )
+          print(f"Firebase project: {expected_project} [OK]")
+          print(f"Android package: {expected_package} [OK]")
+          print(f"Web OAuth client present: {web_client}")
+          print(f"Current APK SHA-1 registered in google-services.json: {registered}")
+          if not web_client:
+              print("::warning::No Web OAuth client (client_type 3) found. Google Sign-In may fail.")
+          if not registered:
+              print("::warning::This APK signing SHA-1 is not in google-services.json. Add the fingerprint to Firebase, download a fresh google-services.json, and update GOOGLE_SERVICES_JSON.")
+          PY
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -124,3 +164,33 @@ jobs:
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
+
+  publish-debug-release:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download debug APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flowtop-debug-apk
+          path: dist
+
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: flowtop-debug-${{ github.run_number }}-${{ github.run_attempt }}
+          name: FlowTop Debug APK #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          generate_release_notes: false
+          body: |
+            Automated FlowTop debug build.
+            This is a test APK, not a Play Store release.
+          files: |
+            dist/app-debug.apk
+            dist/debug-signing-fingerprints.txt
