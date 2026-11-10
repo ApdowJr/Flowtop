@@ -12,15 +12,11 @@ linter:
     cancel_subscriptions: true
     close_sinks: true
     empty_constructor_bodies: true
-    no_empty_function_bodies: true
     prefer_relative_imports: true
     sort_constructors_first: true
     sort_pub_dependencies: true
-    use_named_constants_with_string_literals: true
     use_rethrow_when_possible: true
 
-  # Rules excluded for this project
-  excluded_rules: []
 
 analyzer:
   exclude:
