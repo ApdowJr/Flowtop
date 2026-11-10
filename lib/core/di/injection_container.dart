@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
-import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
-import 'package:flowtop/features/projects/presentation/providers/project_provider.dart';
-import 'package:flowtop/features/workspaces/presentation/providers/workspace_provider.dart';
-import 'package:flowtop/features/notifications/presentation/providers/notification_provider.dart';
-import 'package:flowtop/features/profile/presentation/providers/profile_provider.dart';
-import 'package:flowtop/features/statistics/presentation/providers/statistics_provider.dart';
 
 export 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 export 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
