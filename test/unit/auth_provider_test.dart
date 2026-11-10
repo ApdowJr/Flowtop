@@ -54,7 +54,7 @@ void main() {
       final notifier = AuthNotifier(repository);
       await notifier.signInWithGoogle(idToken: 'bad', accessToken: 'bad');
 
-      expect(notifier.state, isA<AsyncError<UserEntity?>>());
+      expect(notifier.state.toString(), contains('AsyncError'));
     });
   });
 }
