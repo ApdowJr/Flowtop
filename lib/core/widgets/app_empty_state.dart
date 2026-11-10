@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
+import 'package:flowtop/core/widgets/app_button.dart';
 
 /// Empty state illustration + message + optional action.
 class AppEmptyState extends StatelessWidget {
