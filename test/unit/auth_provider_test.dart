@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flowtop/features/auth/domain/entities/user_entity.dart';
 import 'package:flowtop/features/auth/domain/repositories/auth_repository.dart';
@@ -38,23 +38,23 @@ void main() {
 
     test('signInWithGoogle sets loading then data', () async {
       final user = const UserEntity(uid: 'u2', email: 'google@b.com');
-      when(() => repository.signInWithGoogle(any)).thenAnswer((_) async => user);
+      when(() => repository.signInWithGoogle(any())).thenAnswer((_) async => user);
 
       final notifier = AuthNotifier(repository);
       await notifier.signInWithGoogle(idToken: 'id-token', accessToken: 'access-token');
 
       expect(notifier.state.value, equals(user));
-      verify(() => repository.signInWithGoogle(any)).called(1);
+      verify(() => repository.signInWithGoogle(any())).called(1);
     });
 
     test('signInWithGoogle error propagates to state', () async {
-      when(() => repository.signInWithGoogle(any))
+      when(() => repository.signInWithGoogle(any()))
           .thenThrow(FirebaseAuthException(code: 'invalid-credential', message: 'Invalid Google token.'));
 
       final notifier = AuthNotifier(repository);
       await notifier.signInWithGoogle(idToken: 'bad', accessToken: 'bad');
 
-      expect(notifier.state.hasError, isTrue);
+      expect(notifier.state, isA<AsyncError<UserEntity?>>());
     });
   });
 }
