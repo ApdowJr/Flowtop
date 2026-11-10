@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/core/theme/app_theme.dart';
@@ -9,6 +10,7 @@ import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flowtop/features/notifications/presentation/providers/notification_provider.dart';
+import 'package:flowtop/features/notifications/domain/entities/notification_entity.dart';
 
 /// Notifications page with real-time notification list.
 class NotificationsPage extends ConsumerWidget {
