@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_CONFIGURED: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,7 +57,7 @@ jobs:
 
       # Release build is conditional on signing secrets being present.
       - name: Build release APK (if signing configured)
-        if: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+        if: ${{ env.RELEASE_CONFIGURED == 'true' }}
         env:
           KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
         run: |
@@ -64,7 +66,7 @@ jobs:
           flutter build apk --release
 
       - name: Build release AAB (if signing configured)
-        if: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+        if: ${{ env.RELEASE_CONFIGURED == 'true' }}
         env:
           KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
         run: |
@@ -73,7 +75,7 @@ jobs:
           flutter build appbundle --release
 
       - name: Upload release artifacts
-        if: ${{ secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+        if: ${{ env.RELEASE_CONFIGURED == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: flowtop-release
