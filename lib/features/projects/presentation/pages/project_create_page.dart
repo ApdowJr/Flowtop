@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_text_field.dart';
+import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/core/di/injection_container.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
@@ -85,7 +86,7 @@ class _ProjectCreatePageState extends ConsumerState<ProjectCreatePage> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final workspaceId = ref.watch(selectedWorkspaceProvider);
 
     return Scaffold(
