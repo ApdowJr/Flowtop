@@ -272,7 +272,7 @@ class ScaffoldWithNavBar extends ConsumerWidget {
 
   void _onTap(BuildContext context, int index) {
     if (index == selectedIndex) return;
-    navigationShell.goBranch(index, initialLocation: index == 0 ? AppRoutes.dashboard : null);
+    navigationShell.goBranch(index, initialLocation: index == 0);
   }
 
   @override
