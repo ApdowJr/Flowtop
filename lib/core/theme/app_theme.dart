@@ -17,7 +17,6 @@ class AppTheme {
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         surface: AppColors.surface,
-        surface: AppColors.surface,
         onPrimary: AppColors.onPrimary,
         onSurface: AppColors.onSurface,
         error: AppColors.error,
@@ -191,7 +190,6 @@ class AppTheme {
       colorScheme: const ColorScheme.dark(
         primary: AppColors.secondary,
         secondary: AppColors.primary,
-        surface: AppColors.surfaceDark,
         surface: AppColors.surfaceDark,
         onPrimary: AppColors.onSurfaceDark,
         onSurface: AppColors.onSurfaceDark,
