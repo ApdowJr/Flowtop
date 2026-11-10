@@ -29,7 +29,7 @@ void main() {
         () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any)).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any)).thenAnswer((_) async => HttpsCallableResult<Map<String, dynamic>>({}));
 
       await repository.inviteMember(
         'ws1',
@@ -90,7 +90,7 @@ void main() {
           .thenReturn(mockCallable);
       when(() => mockCallable.call(any))
           .thenThrow(FirebaseFunctionsException(
-            'permission-denied',
+            code: 'permission-denied',
             message: 'Only the owner can grant the owner role.',
           ));
 
