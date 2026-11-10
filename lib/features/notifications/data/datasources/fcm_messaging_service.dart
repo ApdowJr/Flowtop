@@ -17,15 +17,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 ///   - Foreground and background notification handling
 class FcmMessagingService {
   FcmMessagingService({
-    required this._fcm,
-    required this._auth,
-    required this._firestore,
-    required this._tokenRepository,
-  });
+    required FirebaseMessaging fcm,
+    required FirebaseAuth auth,
+    required FcmTokenRepository tokenRepository,
+  }) : _fcm = fcm,
+       _auth = auth,
+       _tokenRepository = tokenRepository;
 
   final FirebaseMessaging _fcm;
   final FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
   final FcmTokenRepository _tokenRepository;
 
   StreamSubscription<String>? _tokenSubscription;
@@ -48,7 +48,7 @@ class FcmMessagingService {
     );
 
     // Register the current token.
-    await _registerCurrentToken();
+    await _registerCurrentToken(null);
 
     // Listen for token refresh.
     _tokenSubscription = _fcm.onTokenRefresh.listen(_registerCurrentToken);
@@ -147,9 +147,9 @@ FcmMessagingService createFcmMessagingService({
   FcmTokenRepository? tokenRepository,
 }) {
   return FcmMessagingService(
-    _fcm: fcm ?? FirebaseMessaging.instance,
-    _auth: auth ?? FirebaseAuth.instance,
-    _firestore: firestore ?? FirebaseFirestore.instance,
-    _tokenRepository: tokenRepository ?? FcmTokenRepositoryImpl(firestore ?? FirebaseFirestore.instance),
+    fcm: fcm ?? FirebaseMessaging.instance,
+    auth: auth ?? FirebaseAuth.instance,
+    
+    tokenRepository: tokenRepository ?? FcmTokenRepositoryImpl(firestore ?? FirebaseFirestore.instance),
   );
 }
