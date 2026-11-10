@@ -1,4 +1,4 @@
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flowtop/features/notifications/domain/entities/fcm_token_entity.dart';
 
 void main() {
