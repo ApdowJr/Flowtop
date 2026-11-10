@@ -76,19 +76,19 @@ jobs:
         run: |
           mkdir -p "$HOME/.android" build/app/outputs/flutter-apk
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
-            keytool -genkeypair -v \\
-              -keystore "$HOME/.android/debug.keystore" \\
-              -storepass android \\
-              -alias androiddebugkey \\
-              -keypass android \\
-              -keyalg RSA \\
-              -keysize 2048 \\
-              -validity 10000 \\
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
           fi
           set -o pipefail
-          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey \\
-            | grep -E 'SHA1:|SHA256:' \\
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey \
+            | grep -E 'SHA1:|SHA256:' \
             | tee build/app/outputs/flutter-apk/debug-signing-fingerprints.txt
           test -s build/app/outputs/flutter-apk/debug-signing-fingerprints.txt
 
