@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flowtop/features/tasks/data/repositories/task_repository_impl.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
 import 'package:flowtop/features/tasks/domain/repositories/task_repository.dart';
 import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
