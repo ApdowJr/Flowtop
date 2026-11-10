@@ -5,6 +5,7 @@ on:
     branches: [main, arena/64871141-flowtop, fix/stable-google-signing-and-android-check]
   pull_request:
     branches: [main, arena/64871141-flowtop]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -163,3 +164,33 @@ jobs:
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
           retention-days: 7
+
+  publish-debug-release:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download debug APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flowtop-debug-apk
+          path: dist
+
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: flowtop-debug-${{ github.run_number }}-${{ github.run_attempt }}
+          name: FlowTop Debug APK #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          generate_release_notes: false
+          body: |
+            Automated FlowTop debug build.
+            This is a test APK, not a Play Store release.
+          files: |
+            dist/app-debug.apk
+            dist/debug-signing-fingerprints.txt
