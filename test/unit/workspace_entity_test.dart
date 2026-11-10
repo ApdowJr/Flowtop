@@ -1,4 +1,4 @@
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
 
 void main() {
