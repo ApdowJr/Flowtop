@@ -70,12 +70,7 @@ jobs:
       - name: Export debug signing fingerprints
         run: |
           mkdir -p build/app/outputs/flutter-apk
-          keytool -list -v \\
-            -keystore "$HOME/.android/debug.keystore" \\
-            -storepass android \\
-            -alias androiddebugkey \\
-            | grep -E 'SHA1:|SHA256:' \\
-            | tee build/app/outputs/flutter-apk/debug-signing-fingerprints.txt
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA1:|SHA256:' | tee build/app/outputs/flutter-apk/debug-signing-fingerprints.txt
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
