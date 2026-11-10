@@ -6,7 +6,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:flowtop/core/di/injection_container.dart';
 import 'package:flowtop/features/auth/domain/entities/user_entity.dart';
 import 'package:flowtop/features/auth/domain/repositories/auth_repository.dart';
-import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
