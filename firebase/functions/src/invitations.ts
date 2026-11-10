@@ -106,12 +106,24 @@ export const acceptInvitation = functions.https.onCall(async (data, context) => 
 
   // Use a transaction: mark invitation accepted, add member record.
   await db.runTransaction(async (t) => {
-    t.update(invitationRef, { status: 'accepted', acceptedAt: admin.firestore.FieldValue.serverTimestamp(), acceptedBy: callerUid });
+    const current = await t.get(invitationRef);
+    const currentData = current.data();
+    if (!current.exists || currentData?.status !== 'pending' ||
+        currentData?.email !== callerEmail?.toLowerCase() ||
+        !(currentData?.expiresAt instanceof admin.firestore.Timestamp) ||
+        currentData.expiresAt.toMillis() <= Date.now()) {
+      throw new functions.https.HttpsError('failed-precondition', 'Invitation is no longer valid.');
+    }
     const memberRef = db.collection('workspaces').doc(workspaceId).collection('members').doc(callerUid);
+    const member = await t.get(memberRef);
+    if (member.exists) {
+      throw new functions.https.HttpsError('already-exists', 'You are already a workspace member.');
+    }
+    t.update(invitationRef, { status: 'accepted', acceptedAt: admin.firestore.FieldValue.serverTimestamp(), acceptedBy: callerUid });
     t.set(memberRef, {
       userId: callerUid,
       email: callerEmail,
-      role: invData.role ?? 'member',
+      role: currentData.role ?? 'member',
       workspaceId,
       joinedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -132,6 +144,9 @@ export const changeMemberRole = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('invalid-argument', 'workspaceId, userId and role are required.');
   }
 
+  if (!['owner', 'admin', 'manager', 'member', 'viewer'].includes(role)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid role.');
+  }
   const callerUid = context.auth.uid;
   const callerMember = await db.collection('workspaces').doc(workspaceId).collection('members').doc(callerUid).get();
   if (!callerMember.exists) {
@@ -147,8 +162,8 @@ export const changeMemberRole = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('not-found', 'Member not found.');
   }
 
-  if (role === 'owner' && callerRole !== 'owner') {
-    throw new functions.https.HttpsError('permission-denied', 'Only the owner can assign the owner role.');
+  if (callerRole !== 'owner' && (role === 'owner' || targetMember.data()?.role === 'owner')) {
+    throw new functions.https.HttpsError('permission-denied', 'Only the owner can change an owner role.');
   }
   if (userId === callerUid && role !== callerRole) {
     throw new functions.https.HttpsError('permission-denied', 'You cannot change your own role.');
@@ -165,9 +180,20 @@ export const sendTaskAssignmentNotification = functions.https.onCall(async (data
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be signed in.');
   }
-  const { taskId, assigneeId, workspaceId, assignedBy } = data as { taskId?: string; assigneeId?: string; workspaceId?: string; assignedBy?: string };
+  const { taskId, assigneeId, workspaceId } = data as { taskId?: string; assigneeId?: string; workspaceId?: string };
   if (!taskId || !assigneeId || !workspaceId) {
     throw new functions.https.HttpsError('invalid-argument', 'taskId, assigneeId and workspaceId are required.');
+  }
+
+  const workspaceRef = db.collection('workspaces').doc(workspaceId);
+  const [caller, task, assignee] = await Promise.all([
+    workspaceRef.collection('members').doc(context.auth.uid).get(),
+    workspaceRef.collection('tasks').doc(taskId).get(),
+    workspaceRef.collection('members').doc(assigneeId).get(),
+  ]);
+  if (!caller.exists || !['owner', 'admin', 'manager'].includes(caller.data()?.role) ||
+      !task.exists || task.data()?.assigneeId !== assigneeId || !assignee.exists) {
+    throw new functions.https.HttpsError('permission-denied', 'Not authorized to notify this assignee.');
   }
 
   await db.collection('users').doc(assigneeId).collection('notifications').add({
@@ -176,7 +202,7 @@ export const sendTaskAssignmentNotification = functions.https.onCall(async (data
     body: 'You have been assigned a new task.',
     taskId,
     workspaceId,
-    assignedBy,
+    assignedBy: context.auth.uid,
     read: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });

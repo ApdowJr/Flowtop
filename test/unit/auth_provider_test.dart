@@ -44,7 +44,8 @@ void main() {
       await notifier.signInWithGoogle(idToken: 'id-token', accessToken: 'access-token');
 
       expect(notifier.state.value, equals(user));
-      verify(() => repository.signInWithGoogle(any())).called(1);
+      final captured = verify(() => repository.signInWithGoogle(captureAny())).captured.single;
+      expect(captured, isA<OAuthCredential>());
     });
 
     test('signInWithGoogle error propagates to state', () async {

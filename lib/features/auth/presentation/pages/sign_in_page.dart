@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
@@ -66,13 +67,23 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           ),
         );
       }
-    } catch (e) {
+    } on PlatformException catch (e) {
       if (mounted) {
+        final isConfigurationError = e.code == 'sign_in_failed' &&
+            (e.message?.contains('ApiException: 10') ?? false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Google sign-in failed: $e'),
+            content: Text(isConfigurationError
+                ? 'Google sign-in is not configured for this app build. Please contact support.'
+                : 'Google sign-in failed. Please try again.'),
             backgroundColor: AppColors.error,
           ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in failed. Please try again.')),
         );
       }
     }
@@ -99,12 +110,12 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Sign in',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -194,31 +205,15 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 child: ColoredBox(color: AppColors.divider),
               ),
               const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.center,
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                    children: [
-                      const TextSpan(text: "Don't have an account?  "),
-                      TextSpan(
-                        text: AppStrings.signUp,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Don't have an account?"),
+                  TextButton(
+                    onPressed: loading ? null : () => context.go(AppRoutes.signUp),
+                    child: const Text(AppStrings.signUp),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: () {
-                  // Sign-up navigation handled via the rich text tap target area.
-                },
-                child: const SizedBox.shrink(),
+                ],
               ),
               const SizedBox(height: 24),
               Row(
@@ -249,6 +244,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       switch (error.code) {
         case 'user-not-found':
         case 'wrong-password':
+        case 'invalid-credential':
           return 'Invalid email or password.';
         case 'invalid-email':
           return 'Please enter a valid email.';

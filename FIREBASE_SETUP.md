@@ -99,3 +99,26 @@ In the app, Cloud Firestore persistence is enabled by default on Flutter (cached
 - `firebase_options.dart` placeholder values → replace with real config or Firestore/Auth will fail to initialize.
 - Google Sign-In fails → add SHA-1 fingerprint, enable Google provider, configure OAuth consent screen.
 - Rules rejected → ensure `firestore.rules` starts with `rules_version = '2';`.
+
+### Google Sign-In: Android ApiException 10
+
+Error 10 usually indicates an OAuth configuration or signing-certificate mismatch;
+changing Dart code alone cannot register a certificate. For the **exact APK installed
+on the device**:
+
+1. In Firebase project `flowtop-e68b6`, enable Authentication > Sign-in method > Google.
+2. In Project settings > Your apps, select Android app `com.flowtop.app` and add
+   the SHA-1 and SHA-256 fingerprints of the certificate that signed that APK.
+   For a CI debug APK, download `debug-signing-fingerprints.txt` from the same
+   workflow run as the APK. For a local debug build run:
+   `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`.
+   For Play-distributed builds use the **app signing** certificate in Play Console;
+   upload-key fingerprints may be different.
+3. Download a fresh `google-services.json` after enabling Google and adding the
+   fingerprints. Replace `android/app/google-services.json` locally or update the
+   base64-encoded `GOOGLE_SERVICES_JSON` GitHub Actions secret for CI. Check that
+   it includes the correct package and a web OAuth client (`client_type: 3`).
+4. Rebuild, install the newly signed APK and try again. A fingerprint from another
+   machine, another CI run with a different signing key, or another release key
+   will not fix the installed APK. CI prints warnings if its current fingerprint
+   is missing from the supplied configuration.
