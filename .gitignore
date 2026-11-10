@@ -79,3 +79,7 @@ Desktop.ini
 *.orig
 coverage/
 .lint/
+
+# Node dependencies and compiled Cloud Functions
+node_modules/
+firebase/functions/lib/

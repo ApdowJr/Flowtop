@@ -126,7 +126,11 @@ service cloud.firestore {
       // Owner can change any role. Admin can change non-owner roles only.
       // Members/viewers cannot change roles (blocked by isWorkspaceOwnerOrAdmin).
       allow update: if isWorkspaceOwnerOrAdmin(workspaceId)
-        && (getMemberRole(workspaceId) == 'owner' || request.resource.data.role != 'owner');
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.workspaceId == resource.data.workspaceId
+        && request.resource.data.role in ['owner', 'admin', 'manager', 'member', 'viewer']
+        && (getMemberRole(workspaceId) == 'owner' ||
+            (resource.data.role != 'owner' && request.resource.data.role != 'owner'));
       // Owner/admin may remove members. Non-owners cannot remove owners.
       // A user cannot remove themselves if they are the owner (prevents orphan workspaces).
       allow delete: if isWorkspaceOwnerOrAdmin(workspaceId)

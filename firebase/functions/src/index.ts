@@ -11,7 +11,6 @@ export {
   acceptInvitation,
   changeMemberRole,
   sendTaskAssignmentNotification,
-  sendTaskReminderNotifications,
   cleanExpiredInvitations,
 } from './invitations';
 export { sendTaskReminderNotifications as sendReminders } from './reminders';

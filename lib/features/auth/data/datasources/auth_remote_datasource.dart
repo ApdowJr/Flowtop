@@ -90,10 +90,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
 /// Helper to build a GoogleAuthCredential from a GoogleSignInAuthentication.
 class GoogleAuthHelper {
-  static Future<OAuthCredential> fromGoogleSignIn({
+  static OAuthCredential fromGoogleSignIn({
     required String idToken,
     required String accessToken,
-  }) async {
+  }) {
     return GoogleAuthProvider.credential(
       accessToken: accessToken,
       idToken: idToken,

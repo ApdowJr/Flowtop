@@ -56,9 +56,11 @@ class TaskRepositoryImpl implements TaskRepository {
       }
 
       tasks.sort((a, b) {
-        final ad = a.dueDate?.millisecondsSinceEpoch ?? 0;
-        final bd = b.dueDate?.millisecondsSinceEpoch ?? 0;
-        return bd.compareTo(ad); // soonest due first
+        final ad = a.dueDate?.millisecondsSinceEpoch;
+        final bd = b.dueDate?.millisecondsSinceEpoch;
+        if (ad == null) return bd == null ? 0 : 1;
+        if (bd == null) return -1;
+        return ad.compareTo(bd); // soonest due first
       });
       return tasks;
     });
