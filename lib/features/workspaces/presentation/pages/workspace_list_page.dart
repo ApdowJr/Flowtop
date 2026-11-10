@@ -38,7 +38,7 @@ class WorkspaceListPage extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Color(w.color).withOpacity(0.15),
+                  backgroundColor: Color(w.color).withValues(alpha: 0.15),
                   child: const Icon(Icons.workspaces),
                 ),
                 title: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w600)),
