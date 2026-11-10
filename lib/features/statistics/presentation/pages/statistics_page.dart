@@ -41,16 +41,16 @@ class StatisticsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 30),
-            _statCard(AppStrings.tasksCompleted, '24', AppColors.success, Icons.check_circle),
+            _statCard(context, AppStrings.tasksCompleted, '24', AppColors.success, Icons.check_circle),
             const SizedBox(height: 12),
-            _statCard(AppStrings.tasksOverdue, '3', AppColors.error, Icons.warning),
+            _statCard(context, AppStrings.tasksOverdue, '3', AppColors.error, Icons.warning),
           ],
         ),
       ),
     );
   }
 
-  Widget _statCard(String label, String value, Color color, IconData icon) {
+  Widget _statCard(BuildContext context, String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 8)]),
