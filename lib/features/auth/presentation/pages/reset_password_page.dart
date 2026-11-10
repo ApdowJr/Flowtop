@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_text_field.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
@@ -101,9 +100,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

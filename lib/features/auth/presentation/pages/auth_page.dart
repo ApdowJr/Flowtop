@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 
 /// Entry point for authentication: choose sign in or sign up.
@@ -20,7 +19,7 @@ class AuthPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.login, size: 56, color: AppColors.primary),

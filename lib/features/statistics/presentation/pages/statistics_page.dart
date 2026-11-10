@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 
 /// Productivity statistics page with charts.
 class StatisticsPage extends StatelessWidget {
@@ -41,22 +40,22 @@ class StatisticsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 30),
-            _statCard(AppStrings.tasksCompleted, '24', AppColors.success, Icons.check_circle),
+            _statCard(context, AppStrings.tasksCompleted, '24', AppColors.success, Icons.check_circle),
             const SizedBox(height: 12),
-            _statCard(AppStrings.tasksOverdue, '3', AppColors.error, Icons.warning),
+            _statCard(context, AppStrings.tasksOverdue, '3', AppColors.error, Icons.warning),
           ],
         ),
       ),
     );
   }
 
-  Widget _statCard(String label, String value, Color color, IconData icon) {
+  Widget _statCard(BuildContext context, String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 8)]),
       child: Row(
         children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color)),
+          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(icon, color: color)),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),

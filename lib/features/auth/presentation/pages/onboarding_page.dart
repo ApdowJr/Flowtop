@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:go_router/go_router.dart';
 
@@ -62,7 +61,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(slide.icon, size: 72, color: AppColors.primary),

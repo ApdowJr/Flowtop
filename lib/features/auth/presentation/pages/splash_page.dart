@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 
 /// Splash screen with the flowTop brand mark.
 class SplashPage extends ConsumerStatefulWidget {
@@ -42,7 +41,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.4),
+                    color: AppColors.primary.withValues(alpha: 0.4),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                   ),

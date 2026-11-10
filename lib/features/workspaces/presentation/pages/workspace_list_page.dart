@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
-import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
@@ -40,7 +38,7 @@ class WorkspaceListPage extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Color(w.color).withOpacity(0.15),
+                  backgroundColor: Color(w.color).withValues(alpha: 0.15),
                   child: const Icon(Icons.workspaces),
                 ),
                 title: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w600)),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_loading.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
@@ -43,7 +42,7 @@ class WorkspaceMembersPage extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: const Icon(Icons.person,
                         color: AppColors.primary),
                   ),

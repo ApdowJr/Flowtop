@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flowtop/features/auth/domain/entities/user_entity.dart';
-import 'package:flowtop/features/auth/data/models/user_model.dart';
 
 /// Remote data source backed by Firebase Authentication.
 abstract class AuthRemoteDataSource {
@@ -58,7 +56,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserCredential> signInWithGoogle(Object googleCredential) async {
-    final credential = googleCredential as GoogleAuthCredential;
+    final credential = googleCredential as OAuthCredential;
     return await _auth.signInWithCredential(credential);
   }
 
@@ -92,7 +90,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
 /// Helper to build a GoogleAuthCredential from a GoogleSignInAuthentication.
 class GoogleAuthHelper {
-  static Future<GoogleAuthCredential> fromGoogleSignIn({
+  static Future<OAuthCredential> fromGoogleSignIn({
     required String idToken,
     required String accessToken,
   }) async {

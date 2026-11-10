@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_text_field.dart';
+import 'package:flowtop/core/widgets/app_empty_state.dart';
+import 'package:flowtop/core/widgets/app_loading.dart';
+import 'package:flowtop/core/widgets/app_error_state.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
 import 'package:flowtop/features/tasks/presentation/providers/task_provider.dart';
@@ -19,6 +21,7 @@ class TaskEditPage extends ConsumerStatefulWidget {
 }
 
 class _TaskEditPageState extends ConsumerState<TaskEditPage> {
+  String get taskId => widget.taskId;
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -89,7 +92,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final taskAsync = ref.watch(taskProvider(taskId));
 
     return taskAsync.when(
@@ -147,7 +150,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                   children: TaskPriority.values.map((p) => ChoiceChip(
                     label: Text(p.label),
                     selected: _priority == p,
-                    selectedColor: p.color.withOpacity(0.15),
+                    selectedColor: p.color.withValues(alpha: 0.15),
                     checkmarkColor: p.color,
                     labelStyle: TextStyle(color: _priority == p ? p.color : AppColors.textSecondary),
                     onSelected: (_) => setState(() => _priority = p),

@@ -4,11 +4,13 @@ import 'package:mocktail/mocktail.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowtop/features/workspaces/data/repositories/workspace_repository_impl.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
-import 'package:flowtop/features/workspaces/domain/repositories/workspace_repository.dart';
 
 class MockFirebaseFunctions extends Mock implements FirebaseFunctions {}
 
 class MockHttpsCallable extends Mock implements HttpsCallable {}
+
+class MockHttpsCallableResult extends Mock
+    implements HttpsCallableResult<dynamic> {}
 
 void main() {
   group('WorkspaceRepositoryImpl.inviteMember', () {
@@ -29,7 +31,7 @@ void main() {
         () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any)).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any())).thenAnswer((_) async => MockHttpsCallableResult());
 
       await repository.inviteMember(
         'ws1',
@@ -49,7 +51,7 @@ void main() {
     test('normalizes email to lowercase before sending', () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any)).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any())).thenAnswer((_) async => MockHttpsCallableResult());
 
       await repository.inviteMember(
         'ws1',
@@ -68,7 +70,7 @@ void main() {
     test('passes owner role correctly', () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any)).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any())).thenAnswer((_) async => MockHttpsCallableResult());
 
       await repository.inviteMember(
         'ws1',
@@ -88,9 +90,9 @@ void main() {
         () async {
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any))
+      when(() => mockCallable.call(any()))
           .thenThrow(FirebaseFunctionsException(
-            'permission-denied',
+            code: 'permission-denied',
             message: 'Only the owner can grant the owner role.',
           ));
 
@@ -111,7 +113,7 @@ void main() {
 
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);
-      when(() => mockCallable.call(any)).thenAnswer((_) async => {});
+      when(() => mockCallable.call(any())).thenAnswer((_) async => MockHttpsCallableResult());
 
       // This test verifies the repository can be constructed without functions.
       // The actual call would use FirebaseFunctions.instance which requires

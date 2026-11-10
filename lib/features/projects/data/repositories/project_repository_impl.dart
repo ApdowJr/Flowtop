@@ -61,7 +61,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<void> updateProject(String projectId, ProjectEntity project) async {
     // Determine workspace from project (must be set by caller).
     final workspaceId = project.workspaceId;
-    if (workspaceId == null || workspaceId.isEmpty) {
+    if (workspaceId.isEmpty) {
       throw ArgumentError('Project must belong to a workspace to update.');
     }
     await _doc(workspaceId, projectId).update(
@@ -77,7 +77,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     final project = await watchProject(projectId).first;
     if (project == null) return;
     final workspaceId = project.workspaceId;
-    if (workspaceId == null || workspaceId.isEmpty) return;
+    if (workspaceId.isEmpty) return;
 
     // Delete all tasks associated with this project.
     final tasksSnap = await _firestore

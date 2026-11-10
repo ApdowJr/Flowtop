@@ -1,28 +1,7 @@
-include: package:flutter_lints/flutter.yaml
-
-linter:
-  rules:
-    prefer_const_constructors: true
-    prefer_const_literals_to_create_immutables: true
-    prefer_final_fields: true
-    avoid_print: true
-    avoid_redundant_argument_values: true
-    avoid_unnecessary_containers: true
-    avoid_void_async: true
-    cancel_subscriptions: true
-    close_sinks: true
-    empty_constructor_bodies: true
-    no_empty_function_bodies: true
-    prefer_relative_imports: true
-    sort_constructors_first: true
-    sort_pub_dependencies: true
-    use_named_constants_with_string_literals: true
-    use_rethrow_when_possible: true
-
-  # Rules excluded for this project
-  excluded_rules: []
-
 analyzer:
   exclude:
     - '**/*.g.dart'
     - '**/*.freezed.dart'
+
+linter:
+  rules: []

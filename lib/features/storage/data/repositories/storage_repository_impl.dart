@@ -13,10 +13,12 @@ import 'package:uuid/uuid.dart';
 /// stored in Firestore and protected by Firestore Security Rules.
 class StorageRepository {
   StorageRepository({
-    required this._storage,
-    required this._firestore,
-    required this._auth,
-  });
+    required FirebaseStorage storage,
+    required FirebaseFirestore firestore,
+    required FirebaseAuth auth,
+  }) : _storage = storage,
+       _firestore = firestore,
+       _auth = auth;
 
   final FirebaseStorage _storage;
   final FirebaseFirestore _firestore;

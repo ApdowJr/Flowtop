@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_loading.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
-import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/core/di/injection_container.dart';
 import 'package:flowtop/features/auth/domain/entities/user_entity.dart';
-import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
-import 'package:flowtop/features/projects/domain/entities/project_entity.dart';
-import 'package:flowtop/features/projects/presentation/providers/project_provider.dart';
+import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
 
 class ProjectListPage extends ConsumerStatefulWidget {
   const ProjectListPage({super.key});
@@ -24,7 +20,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   void dispose() { super.dispose(); }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final selectedWorkspaceId = ref.watch(selectedWorkspaceProvider);
 
@@ -68,7 +64,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Color(p.color).withOpacity(0.15),
+                    backgroundColor: Color(p.color).withValues(alpha: 0.15),
                     child: Icon(Icons.folder, color: Color(p.color)),
                   ),
                   title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -110,7 +106,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Color(ws.color).withOpacity(0.15),
+                    backgroundColor: Color(ws.color).withValues(alpha: 0.15),
                     child: Icon(Icons.workspaces, color: Color(ws.color)),
                   ),
                   title: Text(ws.name, style: const TextStyle(fontWeight: FontWeight.w600)),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_loading.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
@@ -89,7 +88,7 @@ class ProjectDetailPage extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Color(project.color).withOpacity(0.1),
+                          color: Color(project.color).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

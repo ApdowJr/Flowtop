@@ -1,7 +1,8 @@
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { localProperties.load(it) }
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
 }
 
 def keystoreProperties = new Properties()
@@ -11,13 +12,23 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    compileSdk 34
-
     namespace 'com.flowtop.app'
+    compileSdk 36
+    ndkVersion '28.2.13676358'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
     defaultConfig {
         applicationId 'com.flowtop.app'
         minSdk 21
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName '1.0.0'
     }
@@ -32,9 +43,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
         release {
             signingConfig signingConfigs.release
             minifyEnabled false
+            shrinkResources false
         }
     }
 }
@@ -44,12 +60,6 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'androidx.core:core-ktx:1.10.1'
-    implementation 'androidx.annotation:annotation:1.7.0'
-    implementation 'androidx.lifecycle:lifecycle-process:2.6.2'
     implementation platform('com.google.firebase:firebase-bom:32.6.0')
     implementation 'com.google.firebase:firebase-analytics'
 }
-
-apply plugin: 'com.google.gms.google-services'

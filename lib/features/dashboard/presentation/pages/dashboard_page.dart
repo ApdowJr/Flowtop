@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
-import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 
 /// Personal dashboard with task progress summary.
@@ -97,7 +95,7 @@ class DashboardPage extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color),

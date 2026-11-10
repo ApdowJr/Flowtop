@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/widgets/app_loading.dart';
 import 'package:flowtop/core/widgets/app_empty_state.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flowtop/features/notifications/presentation/providers/notification_provider.dart';
+import 'package:flowtop/features/notifications/domain/entities/notification_entity.dart';
 
 /// Notifications page with real-time notification list.
 class NotificationsPage extends ConsumerWidget {
@@ -117,7 +118,7 @@ class _NotificationTile extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
+          color: AppColors.primary.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: _iconForType(notification.type),
@@ -160,7 +161,7 @@ class _NotificationTile extends ConsumerWidget {
               ),
             )
           : null,
-      tileColor: isRead ? null : AppColors.primary.withOpacity(0.03),
+      tileColor: isRead ? null : AppColors.primary.withValues(alpha: 0.03),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: () async {
         if (!isRead) {

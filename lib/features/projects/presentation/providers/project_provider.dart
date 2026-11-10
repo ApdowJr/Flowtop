@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flowtop/features/projects/data/models/project_model.dart';
+import 'package:flowtop/features/projects/data/repositories/project_repository_impl.dart';
 import 'package:flowtop/features/projects/domain/entities/project_entity.dart';
 import 'package:flowtop/features/projects/domain/repositories/project_repository.dart';
 

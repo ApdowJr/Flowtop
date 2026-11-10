@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flowtop/features/workspaces/data/models/workspace_model.dart';
 import 'package:flowtop/features/workspaces/data/repositories/workspace_repository_impl.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
 import 'package:flowtop/features/workspaces/domain/repositories/workspace_repository.dart';
