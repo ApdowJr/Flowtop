@@ -23,7 +23,7 @@ void main() {
     ]);
     addTearDown(router.dispose);
     await tester.pumpWidget(ProviderScope(
-      overrides: [currentUserProvider.overrideWith((ref) => const UserEntity(uid: 'u1', displayName: 'Amina'))],
+      overrides: [currentUserProvider.overrideWith((ref) => const UserEntity(uid: 'u1', email: 'amina@example.com', displayName: 'Amina'))],
       child: MaterialApp.router(routerConfig: router, theme: AppTheme.lightTheme()),
     ));
     await tester.pumpAndSettle();
@@ -64,7 +64,7 @@ void main() {
     ]);
     addTearDown(router.dispose);
     await tester.pumpWidget(ProviderScope(overrides: [
-      currentUserProvider.overrideWith((ref) => const UserEntity(uid: 'u1')),
+      currentUserProvider.overrideWith((ref) => const UserEntity(uid: 'u1', email: 'amina@example.com')),
       selectedWorkspaceProvider.overrideWith((ref) => 'w1'),
       taskRepositoryProvider.overrideWithValue(repository),
     ], child: MaterialApp.router(routerConfig: router, darkTheme: AppTheme.darkTheme(), themeMode: ThemeMode.dark)));

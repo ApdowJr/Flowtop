@@ -39,8 +39,8 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
       }
       final roles = {
         for (final doc in memberSnapshot.docs)
-          if (doc.ref.parent.parent != null)
-            doc.ref.parent.parent!.id: WorkspaceMemberModel.fromMap(doc.id, doc.data()).toEntity().role,
+          if (doc.reference.parent.parent != null)
+            doc.reference.parent.parent!.id: WorkspaceMemberModel.fromMap(doc.id, doc.data()).toEntity().role,
       };
       final workspaceIds = roles.keys;
 
@@ -65,8 +65,8 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
 
     final roles = {
       for (final doc in memberSnapshot.docs)
-        if (doc.ref.parent.parent != null)
-          doc.ref.parent.parent!.id: WorkspaceMemberModel.fromMap(doc.id, doc.data()).toEntity().role,
+        if (doc.reference.parent.parent != null)
+          doc.reference.parent.parent!.id: WorkspaceMemberModel.fromMap(doc.id, doc.data()).toEntity().role,
     };
     final workspaceIds = roles.keys;
 

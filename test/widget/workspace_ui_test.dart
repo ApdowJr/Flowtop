@@ -25,7 +25,7 @@ void main() {
     ]);
     addTearDown(router.dispose);
     await tester.pumpWidget(ProviderScope(overrides: [
-      currentUserProvider.overrideWith((ref) => const UserEntity(uid: 'u1')),
+      currentUserProvider.overrideWith((ref) => const UserEntity(uid: 'u1', email: 'amina@example.com')),
       workspaceRepositoryProvider.overrideWithValue(repository),
     ], child: MaterialApp.router(routerConfig: router)));
     await tester.pumpAndSettle();
