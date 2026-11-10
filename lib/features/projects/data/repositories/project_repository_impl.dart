@@ -77,7 +77,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     final project = await watchProject(projectId).first;
     if (project == null) return;
     final workspaceId = project.workspaceId;
-    if (workspaceId == null || workspaceId.isEmpty) return;
+    if (workspaceId.isEmpty) return;
 
     // Delete all tasks associated with this project.
     final tasksSnap = await _firestore
