@@ -33,6 +33,8 @@ class DashboardPage extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Text('flowTop', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -.6)),
                 const Spacer(),
+                _HeaderButton(icon: Icons.notifications_none_rounded, label: 'Notifications', onTap: () => context.go(AppRoutes.notifications)),
+                const SizedBox(width: 8),
                 _HeaderButton(icon: Icons.workspaces_outlined, label: 'Workspaces', onTap: () => context.go(AppRoutes.workspaces)),
                 const SizedBox(width: 8),
                 _HeaderButton(icon: Icons.person_outline_rounded, label: 'Profile', onTap: () => context.go(AppRoutes.profile)),

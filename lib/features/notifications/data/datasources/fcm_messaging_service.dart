@@ -30,17 +30,24 @@ class FcmMessagingService {
 
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
-  StreamSubscription<RemoteMessage>? _backgroundSubscription;
+  StreamSubscription<RemoteMessage>? _tapSubscription;
   StreamSubscription<User?>? _authSubscription;
 
   bool _initialized = false;
+  Future<void> _tokenOperations = Future.value();
+
+  Future<void> _enqueueTokenOperation(Future<void> Function() action) {
+    final operation = _tokenOperations.then((_) => action());
+    _tokenOperations = operation.catchError((Object _) {});
+    return operation;
+  }
 
   /// Initialize FCM: request permissions, register token, listen for refresh.
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
 
-    // Request notification permissions (iOS/macOS; Android auto-grants).
+    // Android 13+ and Apple platforms require notification permission.
     await _fcm.requestPermission(
       alert: true,
       badge: true,
@@ -48,19 +55,21 @@ class FcmMessagingService {
     );
 
     // Register the current token.
-    await _registerCurrentToken(null);
+    await _enqueueTokenOperation(() => _registerCurrentToken(null));
 
     // Listen for token refresh.
-    _tokenSubscription = _fcm.onTokenRefresh.listen(_registerCurrentToken);
+    _tokenSubscription = _fcm.onTokenRefresh.listen((token) {
+      unawaited(_enqueueTokenOperation(() => _registerCurrentToken(token)).catchError((Object error) {
+        debugPrint('FCM token refresh failed: $error');
+      }));
+    });
 
     // Listen to auth state changes to clean up tokens on sign out.
     _authSubscription = _auth.authStateChanges().listen((user) {
-      if (user == null) {
-        // User signed out — deactivate all tokens.
-        _deactivateAllTokens();
-      } else {
-        // User signed in — ensure token is registered.
-        _registerCurrentToken(null);
+      if (user != null) {
+        unawaited(_enqueueTokenOperation(() => _registerCurrentToken(null)).catchError((Object error) {
+          debugPrint('FCM token registration failed: $error');
+        }));
       }
     });
 
@@ -73,7 +82,7 @@ class FcmMessagingService {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Notification tap handler (app opened from notification).
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    _tapSubscription = FirebaseMessaging.onMessageOpenedApp.listen((message) {
       _handleNotificationTap(message);
     });
   }
@@ -82,7 +91,7 @@ class FcmMessagingService {
   Future<void> dispose() async {
     await _tokenSubscription?.cancel();
     await _foregroundSubscription?.cancel();
-    await _backgroundSubscription?.cancel();
+    await _tapSubscription?.cancel();
     await _authSubscription?.cancel();
     _initialized = false;
   }
@@ -92,7 +101,7 @@ class FcmMessagingService {
     if (user == null) return;
 
     final token = newToken ?? await _fcm.getToken();
-    if (token == null) return;
+    if (token == null || _auth.currentUser?.uid != user.uid) return;
 
     final platform = defaultTargetPlatform.name;
     await _tokenRepository.saveToken(
@@ -110,11 +119,13 @@ class FcmMessagingService {
     );
   }
 
-  Future<void> _deactivateAllTokens() async {
+  /// Remove this device's token while the current user is still authenticated.
+  Future<void> unregisterCurrentDevice() => _enqueueTokenOperation(() async {
     final user = _auth.currentUser;
     if (user == null) return;
-    await _tokenRepository.deactivateAllTokens(user.uid);
-  }
+    final token = await _fcm.getToken();
+    if (token != null) await _tokenRepository.removeToken(user.uid, token);
+  });
 
   void _handleForegroundMessage(RemoteMessage message) {
     // Foreground notification received — the UI layer can react via the

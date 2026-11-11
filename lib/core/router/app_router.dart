@@ -11,6 +11,7 @@ import 'package:flowtop/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:flowtop/features/auth/presentation/pages/splash_page.dart';
 import 'package:flowtop/features/calendar/presentation/pages/calendar_page.dart';
 import 'package:flowtop/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:flowtop/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_create_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_detail_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_list_page.dart';
@@ -107,6 +108,11 @@ class AppRouter {
                 path: AppRoutes.dashboard,
                 name: 'dashboard',
                 builder: (context, state) => const DashboardPage(),
+              ),
+              GoRoute(
+                path: AppRoutes.notifications,
+                name: 'notifications',
+                builder: (context, state) => const NotificationsPage(),
               ),
             ],
           ),

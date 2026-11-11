@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/core/theme/app_theme.dart';
 import 'package:flowtop/core/di/injection_container.dart';
@@ -18,7 +19,20 @@ void main() async {
   // Initialize dependency injection (providers).
   await initInjectionContainer();
 
-  runApp(const ProviderScope(child: FlowTopApp()));
+  SharedPreferences? preferences;
+  try {
+    preferences = await SharedPreferences.getInstance();
+  } catch (_) {
+    // The app remains usable even if local preferences are unavailable.
+  }
+  final storedTheme = preferences?.getString('theme_mode');
+  runApp(ProviderScope(
+    overrides: [
+      preferencesProvider.overrideWithValue(preferences),
+      themeModeProvider.overrideWith((ref) => storedTheme == 'light' ? ThemeMode.light : ThemeMode.dark),
+    ],
+    child: const FlowTopApp(),
+  ));
 }
 
 /// Root application widget.
@@ -31,6 +45,7 @@ class FlowTopApp extends ConsumerWidget {
     // when the authenticated user changes (sign-out, sign-in, account switch).
     // This prevents user B from inheriting user A's workspace context.
     ref.read(selectedWorkspaceAuthListener);
+    ref.read(fcmStartupProvider);
 
     final themeMode = ref.watch(themeModeProvider);
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 
 export 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
@@ -9,6 +10,9 @@ export 'package:flowtop/features/workspaces/presentation/providers/workspace_pro
 export 'package:flowtop/features/notifications/presentation/providers/notification_provider.dart';
 export 'package:flowtop/features/profile/presentation/providers/profile_provider.dart';
 export 'package:flowtop/features/statistics/presentation/providers/statistics_provider.dart';
+
+/// Storage is initialized at startup and can be overridden in tests.
+final preferencesProvider = Provider<SharedPreferences?>((ref) => null);
 
 /// Theme mode provider (light/dark/system).
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);

@@ -21,10 +21,11 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  AuthRemoteDataSourceImpl(this._auth, this._googleSignIn);
+  AuthRemoteDataSourceImpl(this._auth, this._googleSignIn, {this.beforeSignOut});
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final Future<void> Function()? beforeSignOut;
 
   @override
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -67,6 +68,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> signOut() async {
+    await beforeSignOut?.call();
     await Future.wait([
       _auth.signOut(),
       _googleSignIn.signOut(),
