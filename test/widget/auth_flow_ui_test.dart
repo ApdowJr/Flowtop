@@ -66,8 +66,9 @@ void main() {
     ));
     await tester.enterText(find.byType(TextFormField).at(0), 'person@example.com');
     await tester.enterText(find.byType(TextFormField).at(1), 'password123');
-    await tester.ensureVisible(find.text(AppStrings.signIn));
-    await tester.tap(find.text(AppStrings.signIn));
+    final signInButton = find.widgetWithText(ElevatedButton, AppStrings.signIn);
+    await tester.ensureVisible(signInButton);
+    await tester.tap(signInButton);
     await tester.pumpAndSettle();
     expect(find.text('Dashboard destination'), findsOneWidget);
   });
