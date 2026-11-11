@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flowtop/core/di/injection_container.dart' show selectedWorkspaceProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flowtop/features/projects/domain/entities/project_entity.dart';
@@ -16,6 +17,7 @@ void main() {
       mockRepository = MockProjectRepository();
       container = ProviderContainer(
         overrides: [
+          selectedWorkspaceProvider.overrideWith((ref) => 'ws1'),
           projectRepositoryProvider.overrideWithValue(mockRepository),
         ],
       );
@@ -34,7 +36,7 @@ void main() {
         progress: 0.5,
       );
 
-      when(() => mockRepository.watchProject('p1')).thenAnswer(
+      when(() => mockRepository.watchProject('ws1', 'p1')).thenAnswer(
         (_) => Stream.value(project),
       );
 
@@ -43,7 +45,7 @@ void main() {
     });
 
     test('projectProvider returns null when project does not exist', () async {
-      when(() => mockRepository.watchProject('missing')).thenAnswer(
+      when(() => mockRepository.watchProject('ws1', 'missing')).thenAnswer(
         (_) => Stream.value(null),
       );
 
