@@ -11,7 +11,7 @@ export 'package:flowtop/features/profile/presentation/providers/profile_provider
 export 'package:flowtop/features/statistics/presentation/providers/statistics_provider.dart';
 
 /// Theme mode provider (light/dark/system).
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 
 /// Currently selected workspace ID (null = no workspace selected).
 /// Used by project and task features to scope operations to a workspace.

@@ -1,76 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 
-/// Entry point for authentication: choose sign in or sign up.
+/// Entry point for authentication.
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.login, size: 56, color: AppColors.primary),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Welcome back to flowTop',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Sign in to access your tasks and teams.',
-                style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              AppButton(
-                text: AppStrings.signIn,
-                onPressed: () => Navigator.of(context).pushNamed(AppRoutes.signIn),
-              ),
-              const SizedBox(height: 16),
-              AppOutlinedButton(
-                text: AppStrings.createAccount,
-                onPressed: () => Navigator.of(context).pushNamed(AppRoutes.signUp),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: AppColors.divider)),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Or continue with Google',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(15)),
+                    child: Icon(Icons.check_rounded, color: theme.colorScheme.onPrimary),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Divider(color: AppColors.divider)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              AppButton(
-                text: AppStrings.signInWithGoogle,
-                icon: const Icon(Icons.g_mobiledata, size: 20, color: Colors.white),
-                onPressed: () {},
-                // Google sign-in is handled on the SignIn page.
-              ),
-            ],
+                  Text('flowTop', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                ]),
+                const SizedBox(height: 64),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    border: Border.all(color: theme.dividerColor),
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(Icons.auto_awesome_rounded, color: theme.colorScheme.primary, size: 30),
+                    SizedBox(height: 40),
+                    Text('Make room for\nyour best work.', style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 29, height: 1.15, fontWeight: FontWeight.w800)),
+                    SizedBox(height: 14),
+                    Text('Your tasks, projects and people, together in one calm space.', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 15, height: 1.5)),
+                  ]),
+                ),
+                const SizedBox(height: 36),
+                Text('Ready to find your flow?', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text('Sign in or create an account to get started.', style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 26),
+                AppButton(text: AppStrings.signIn, onPressed: () => context.go(AppRoutes.signIn)),
+                const SizedBox(height: 12),
+                AppOutlinedButton(text: AppStrings.createAccount, onPressed: () => context.go(AppRoutes.signUp)),
+                const SizedBox(height: 18),
+                Center(child: Text('Google sign-in is available on the next screen', textAlign: TextAlign.center, style: theme.textTheme.bodySmall)),
+              ]),
+            ),
           ),
         ),
       ),

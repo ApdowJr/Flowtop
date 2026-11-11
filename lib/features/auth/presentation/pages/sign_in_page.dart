@@ -21,6 +21,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscure = true;
+  bool _googleLoading = false;
 
   @override
   void dispose() {
@@ -30,14 +31,19 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   }
 
   Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_googleLoading || ref.read(authProvider).isLoading || !_formKey.currentState!.validate()) return;
     await ref.read(authProvider.notifier).signInWithEmailPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
+    if (mounted && ref.read(authProvider).valueOrNull != null) {
+      context.go(AppRoutes.dashboard);
+    }
   }
 
   Future<void> _signInWithGoogle() async {
+    if (_googleLoading || ref.read(authProvider).isLoading) return;
+    setState(() => _googleLoading = true);
     try {
       final googleSignIn = ref.read(googleSignInProvider);
       final account = await googleSignIn.signIn();
@@ -58,6 +64,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         idToken: idToken,
         accessToken: accessToken,
       );
+      if (mounted && ref.read(authProvider).valueOrNull != null) {
+        context.go(AppRoutes.dashboard);
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,13 +95,15 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           const SnackBar(content: Text('Google sign-in failed. Please try again.')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final loading = authState.isLoading;
+    final loading = authState.isLoading || _googleLoading;
     final error = authState.error;
 
     return Scaffold(
@@ -119,9 +130,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Welcome back to flowTop',
-                style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 32),
               AppTextField(
@@ -133,7 +144,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 controller: _emailController,
                 validator: (value) {
                   if (value == null || value.isEmpty) return AppStrings.emailRequired;
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) {
                     return AppStrings.validEmail;
                   }
                   return null;
@@ -146,6 +157,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 icon: Icons.lock_outlined,
                 obscureText: _obscure,
                 suffixIcon: IconButton(
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
                   icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
@@ -188,7 +200,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   onPressed: loading ? null : () => context.go(AppRoutes.resetPassword),
                   child: Text(
                     AppStrings.forgotPassword,
-                    style: const TextStyle(fontSize: 14, color: AppColors.primary),
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary),
                   ),
                 ),
               ),
@@ -226,10 +238,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              AppButton(
+              AppOutlinedButton(
                 text: AppStrings.signInWithGoogle,
-                icon: const Icon(Icons.g_mobiledata, size: 20),
-                loading: authState.isLoading,
+                icon: const Icon(Icons.g_mobiledata, size: 24),
                 onPressed: loading ? null : _signInWithGoogle,
               ),
             ],

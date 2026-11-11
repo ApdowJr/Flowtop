@@ -262,12 +262,12 @@ class ScaffoldWithNavBar extends ConsumerWidget {
   final int selectedIndex;
 
   static const List<_NavItem> _items = [
-    _NavItem(AppRoutes.dashboard, Icons.dashboard_outlined, Icons.dashboard, AppStrings.dashboard),
+    _NavItem(AppRoutes.dashboard, Icons.dashboard_outlined, Icons.dashboard, 'Home'),
     _NavItem(AppRoutes.taskList, Icons.task_outlined, Icons.task, AppStrings.tasks),
     _NavItem(AppRoutes.projects, Icons.folder_outlined, Icons.folder, AppStrings.projects),
     _NavItem(AppRoutes.calendar, Icons.calendar_today_outlined, Icons.calendar_today, AppStrings.calendar),
-    _NavItem(AppRoutes.workspaces, Icons.people_outlined, Icons.people, AppStrings.workspaces),
-    _NavItem(AppRoutes.profile, Icons.person_outlined, Icons.person, AppStrings.profile),
+    _NavItem(AppRoutes.workspaces, Icons.people_outlined, Icons.people, 'Spaces'),
+    _NavItem(AppRoutes.profile, Icons.person_outlined, Icons.person, 'You'),
   ];
 
   void _onTap(BuildContext context, int index) {

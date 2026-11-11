@@ -110,13 +110,13 @@ class TaskDetailPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             if (task.description.isNotEmpty) ...[
-              const Text(AppStrings.description, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text(AppStrings.description, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Text(task.description, style: const TextStyle(fontSize: 15, color: AppColors.textSecondary)),
               const SizedBox(height: 24),
             ],
             if (task.dueDate != null) ...[
-              const Text(AppStrings.dueDate, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text(AppStrings.dueDate, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -124,14 +124,14 @@ class TaskDetailPage extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     '${task.dueDate!.day}/${task.dueDate!.month}/${task.dueDate!.year}',
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                    style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
             ],
             if (task.assigneeId != null && task.assigneeId!.isNotEmpty) ...[
-              const Text(AppStrings.assignee, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text(AppStrings.assignee, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Text(
                 task.assigneeId!,

@@ -160,7 +160,7 @@ class ProjectDetailPage extends ConsumerWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
-                            color: task.status == TaskStatus.done ? AppColors.textSecondary : AppColors.textPrimary,
+                            color: task.status == TaskStatus.done ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
                             decoration: task.status == TaskStatus.done
                                 ? TextDecoration.lineThrough
                                 : TextDecoration.none,

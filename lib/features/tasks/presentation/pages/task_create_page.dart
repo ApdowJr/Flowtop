@@ -20,6 +20,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   TaskPriority _priority = TaskPriority.medium;
   TaskCategory _category = TaskCategory.personal;
@@ -33,7 +34,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
 
     final user = ref.read(currentUserProvider);
     final workspaceId = ref.read(selectedWorkspaceProvider);
@@ -75,8 +76,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       createdAt: DateTime.now(),
     );
 
+    setState(() => _saving = true);
     try {
-      await ref.read(taskListProvider(workspaceId).notifier).createTask(task);
+      await ref.read(taskRepositoryProvider).createTask(task);
       if (mounted) context.go(AppRoutes.taskList);
     } catch (e) {
       if (mounted) {
@@ -87,6 +89,8 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -183,7 +187,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                     onTap: _pickDate,
                   ),
                   const SizedBox(height: 30),
-                  AppButton(text: AppStrings.save, onPressed: _save),
+                  AppButton(text: AppStrings.save, loading: _saving, onPressed: _save),
                 ],
               ),
             ),

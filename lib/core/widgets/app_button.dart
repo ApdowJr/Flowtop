@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flowtop/core/constants/app_constants.dart';
 
 /// Primary filled button.
 class AppButton extends StatelessWidget {
@@ -28,18 +27,18 @@ class AppButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: (enabled && !loading) ? onPressed : null,
         style: style ?? ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: loading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                  valueColor: AlwaysStoppedAnimation(Theme.of(context).colorScheme.onPrimary),
                 ),
               )
             : Row(
@@ -80,8 +79,8 @@ class AppOutlinedButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: enabled ? onPressed : null,
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textSecondary,
-          side: const BorderSide(color: AppColors.divider),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          side: BorderSide(color: Theme.of(context).dividerColor),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Row(

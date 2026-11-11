@@ -67,7 +67,35 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+        run: |
+          set +e
+          flutter analyze > /tmp/flowtop-analysis.txt 2>&1
+          status=$?
+          cat /tmp/flowtop-analysis.txt
+          if [ "$status" -ne 0 ]; then
+            while IFS= read -r line; do
+              if [[ "$line" == *' • '* ]]; then
+                echo "::error::$line"
+              fi
+            done < /tmp/flowtop-analysis.txt
+          fi
+          exit "$status"
+
+      - name: Test authentication, dashboard and workspace UI
+        run: |
+          set +e
+          flutter test --reporter expanded test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart test/widget/auth_flow_ui_test.dart test/unit/auth_provider_test.dart > /tmp/flowtop-tests.txt 2>&1
+          status=$?
+          cat /tmp/flowtop-tests.txt
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PYCODE'
+          from pathlib import Path
+          text = Path('/tmp/flowtop-tests.txt').read_text(errors='replace')[-12000:]
+          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print('::error::' + text)
+          PYCODE
+          fi
+          exit "$status"
 
       - name: Build debug APK
         run: flutter build apk --debug

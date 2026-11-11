@@ -18,6 +18,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _sent = false;
+  bool _attempted = false;
 
   @override
   void dispose() {
@@ -26,11 +27,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   }
 
   Future<void> _reset() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (ref.read(authProvider).isLoading || !_formKey.currentState!.validate()) return;
+    setState(() => _attempted = true);
     await ref.read(authProvider.notifier).sendPasswordResetEmail(
       _emailController.text.trim(),
     );
-    if (mounted) setState(() => _sent = true);
+    if (mounted && !ref.read(authProvider).hasError) setState(() => _sent = true);
   }
 
   @override
@@ -51,12 +53,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               AppStrings.resetPassword,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -81,12 +83,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       onFieldSubmitted: (_) => _reset(),
                       validator: (value) {
                         if (value == null || value.isEmpty) return AppStrings.emailRequired;
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) {
                           return AppStrings.validEmail;
                         }
                         return null;
                       },
                     ),
+                    if (_attempted && authState.hasError) ...[
+                      const SizedBox(height: 16),
+                      Text('Could not send the reset link. Check your connection and try again.',
+                          style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    ],
                     const SizedBox(height: 24),
                     AppButton(
                       text: AppStrings.sendResetLink,
@@ -109,12 +116,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   children: [
                     const Icon(Icons.mark_email_read, size: 56, color: AppColors.success),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Reset link sent',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),

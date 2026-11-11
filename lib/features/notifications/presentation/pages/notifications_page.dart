@@ -128,7 +128,7 @@ class _NotificationTile extends ConsumerWidget {
         style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 15,
-          color: isRead ? AppColors.textSecondary : AppColors.textPrimary,
+          color: isRead ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
         ),
       ),
       subtitle: Column(
@@ -139,7 +139,7 @@ class _NotificationTile extends ConsumerWidget {
             notification.body,
             style: TextStyle(
               fontSize: 13,
-              color: isRead ? AppColors.textSecondary : AppColors.textPrimary,
+              color: isRead ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Brand colors — premium purple.
+/// Brand colors — electric lime on graphite.
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFF7C3AED);   // #7C3AED violet-600
-  static const Color secondary = Color(0xFF8B5CF6); // #8B5CF6 violet-500
+  static const Color primary = Color(0xFFC4F43D);   // electric lime
+  static const Color secondary = Color(0xFFAAD939); // softer lime
 
-  static const Color surface = Color(0xFFFAF9FF);
-  static const Color surfaceVariant = Color(0xFFF3EEFF);
-  static const Color surfaceDark = Color(0xFF1E1B2B);
-  static const Color surfaceDarkVariant = Color(0xFF27233A);
+  static const Color surface = Color(0xFFF5F6F0);
+  static const Color surfaceVariant = Color(0xFFECF2DC);
+  static const Color surfaceDark = Color(0xFF101110);
+  static const Color surfaceDarkVariant = Color(0xFF1A1C1A);
 
-  static const Color onPrimary = Colors.white;
-  static const Color onSurface = Color(0xFF2D2544);
+  static const Color onPrimary = Color(0xFF141A08);
+  static const Color onSurface = Color(0xFF171B16);
   static const Color onSurfaceDark = Colors.white;
 
   static const Color brightnessLow = Color(0xFF22C55E);   // green
@@ -25,12 +25,12 @@ class AppColors {
   static const Color warning = Color(0xFFF59E0B);
   static const Color info = Color(0xFF3B82F6);
 
-  static const Color textPrimary = Color(0xFF1F1733);
-  static const Color textSecondary = Color(0xFF6B648A);
+  static const Color textPrimary = Color(0xFF171B16);
+  static const Color textSecondary = Color(0xFF838A7D);
   static const Color textOnDark = Colors.white;
 
-  static const Color divider = Color(0xFFE9E4F2);
-  static const Color dividerDark = Color(0xFF332E4A);
+  static const Color divider = Color(0xFFE2E5DB);
+  static const Color dividerDark = Color(0xFF30332E);
 
   static const Color shadow = Color(0x1A000000);
 }
