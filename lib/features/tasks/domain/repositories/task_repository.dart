@@ -17,7 +17,7 @@ abstract class TaskRepository {
   });
 
   /// Stream of a single task by ID.
-  Stream<TaskEntity?> watchTask(String taskId);
+  Stream<TaskEntity?> watchTask(String workspaceId, String taskId);
 
   /// Future fetch of tasks (used for offline-first / cache reads).
   Future<List<TaskEntity>> getTasks({
@@ -33,10 +33,10 @@ abstract class TaskRepository {
   Future<void> updateTask(String taskId, TaskEntity task);
 
   /// Delete a task and its attachments/subtasks.
-  Future<void> deleteTask(String taskId);
+  Future<void> deleteTask(String workspaceId, String taskId);
 
   /// Mark a task complete/incomplete.
-  Future<void> toggleTaskCompletion(String taskId, bool completed);
+  Future<void> toggleTaskCompletion(String workspaceId, String taskId, bool completed);
 
   /// Stream of subtasks for a task within a workspace.
   Stream<List<SubtaskEntity>> watchSubtasks(String workspaceId, String taskId);

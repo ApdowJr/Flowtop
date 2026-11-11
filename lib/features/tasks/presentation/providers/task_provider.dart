@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flowtop/core/di/injection_container.dart' show selectedWorkspaceProvider;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -117,7 +118,7 @@ class TaskListNotifier extends StateNotifier<AsyncValue<List<TaskEntity>>> {
     final old = state.value;
     state = const AsyncValue.loading();
     try {
-      await _repository.deleteTask(taskId);
+      await _repository.deleteTask(_workspaceId, taskId);
       state = AsyncValue.data(old?.where((t) => t.id != taskId).toList() ?? const []);
       TaskEntity? deleted;
       if (old != null) {
@@ -137,7 +138,7 @@ class TaskListNotifier extends StateNotifier<AsyncValue<List<TaskEntity>>> {
     final old = state.value;
     state = const AsyncValue.loading();
     try {
-      await _repository.toggleTaskCompletion(taskId, completed);
+      await _repository.toggleTaskCompletion(_workspaceId, taskId, completed);
       state = AsyncValue.data(old ?? const []);
       TaskEntity? task;
       if (old != null) {
@@ -177,7 +178,9 @@ final taskFilterProvider = StateProvider.family<TaskFilter, String>((ref, worksp
 /// Single task provider — watches a task stream from Firestore.
 final taskProvider = StreamProvider.family<TaskEntity?, String>((ref, taskId) {
   final repository = ref.watch(taskRepositoryProvider);
-  return repository.watchTask(taskId);
+  final workspaceId = ref.watch(selectedWorkspaceProvider);
+  if (workspaceId == null) return Stream.value(null);
+  return repository.watchTask(workspaceId, taskId);
 });
 
 /// Subtasks notifier family.

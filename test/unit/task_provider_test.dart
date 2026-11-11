@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flowtop/core/di/injection_container.dart' show selectedWorkspaceProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
@@ -16,6 +17,7 @@ void main() {
       mockRepository = MockTaskRepository();
       container = ProviderContainer(
         overrides: [
+          selectedWorkspaceProvider.overrideWith((ref) => 'ws1'),
           taskRepositoryProvider.overrideWithValue(mockRepository),
         ],
       );
@@ -36,7 +38,7 @@ void main() {
         workspaceId: 'ws1',
       );
 
-      when(() => mockRepository.watchTask('t1')).thenAnswer(
+      when(() => mockRepository.watchTask('ws1', 't1')).thenAnswer(
         (_) => Stream.value(task),
       );
 
@@ -45,7 +47,7 @@ void main() {
     });
 
     test('taskProvider returns null when task does not exist', () async {
-      when(() => mockRepository.watchTask('missing')).thenAnswer(
+      when(() => mockRepository.watchTask('ws1', 'missing')).thenAnswer(
         (_) => Stream.value(null),
       );
 

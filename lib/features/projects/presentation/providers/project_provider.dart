@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flowtop/core/di/injection_container.dart' show selectedWorkspaceProvider;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,5 +60,7 @@ final projectListProvider = StateNotifierProvider.family<
 /// Single project provider — watches a project stream from Firestore.
 final projectProvider = StreamProvider.family<ProjectEntity?, String>((ref, projectId) {
   final repository = ref.watch(projectRepositoryProvider);
-  return repository.watchProject(projectId);
+  final workspaceId = ref.watch(selectedWorkspaceProvider);
+  if (workspaceId == null) return Stream.value(null);
+  return repository.watchProject(workspaceId, projectId);
 });

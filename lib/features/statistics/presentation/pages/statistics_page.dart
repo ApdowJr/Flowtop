@@ -1,69 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
+import 'package:flowtop/core/di/injection_container.dart';
+import 'package:flowtop/core/widgets/app_empty_state.dart';
+import 'package:flowtop/core/widgets/app_error_state.dart';
+import 'package:flowtop/features/tasks/domain/entities/task_entity.dart';
 
-/// Productivity statistics page with charts.
-class StatisticsPage extends StatelessWidget {
+/// Workspace task statistics based on the live task stream.
+class StatisticsPage extends ConsumerWidget {
   const StatisticsPage({super.key});
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workspaceId = ref.watch(selectedWorkspaceProvider);
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text(AppStrings.statistics)),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppStrings.productivity, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: const [
-                        FlSpot(0, 3), FlSpot(1, 5), FlSpot(2, 2), FlSpot(3, 7), FlSpot(4, 4), FlSpot(5, 6),
-                      ],
-                      isCurved: true,
-                      color: AppColors.primary,
-                      barWidth: 3,
-                      dotData: const FlDotData(show: false),
-                    ),
-                  ],
-                ),
-              ),
+      body: workspaceId == null
+          ? AppEmptyState(title: 'Choose your workspace', subtitle: 'Select a workspace to see your statistics.', icon: Icons.bar_chart_rounded,
+              actionLabel: 'Choose workspace', action: () => context.go(AppRoutes.workspaces))
+          : ref.watch(taskListProvider(workspaceId)).when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => AppErrorState(message: 'Could not load your statistics.', onRetry: () => ref.invalidate(taskListProvider(workspaceId))),
+              data: (tasks) {
+                final done = tasks.where((task) => task.status == TaskStatus.done).length;
+                final overdue = tasks.where((task) => task.isOverdue).length;
+                final progress = tasks.isEmpty ? 0.0 : done / tasks.length;
+                return ListView(padding: const EdgeInsets.all(20), children: [
+                  Text('Your workspace at a glance', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Text(tasks.isEmpty ? 'Add a task to start tracking your progress.' : 'Based on all tasks in your selected workspace.', style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 24),
+                  Card(margin: EdgeInsets.zero, child: Padding(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Completion', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 10),
+                    Text('${(progress * 100).round()}%', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 14),
+                    LinearProgressIndicator(value: progress, minHeight: 8, borderRadius: BorderRadius.circular(8)),
+                    const SizedBox(height: 10), Text('$done of ${tasks.length} tasks completed', style: theme.textTheme.bodyMedium),
+                  ]))),
+                  const SizedBox(height: 16),
+                  _Stat(label: 'Open tasks', value: '${tasks.length - done}', icon: Icons.pending_actions_rounded),
+                  _Stat(label: 'Completed tasks', value: '$done', icon: Icons.check_circle_outline_rounded),
+                  _Stat(label: 'Overdue tasks', value: '$overdue', icon: Icons.schedule_rounded),
+                ]);
+              },
             ),
-            const SizedBox(height: 30),
-            _statCard(context, AppStrings.tasksCompleted, '24', AppColors.success, Icons.check_circle),
-            const SizedBox(height: 12),
-            _statCard(context, AppStrings.tasksOverdue, '3', AppColors.error, Icons.warning),
-          ],
-        ),
-      ),
     );
   }
+}
 
-  Widget _statCard(BuildContext context, String label, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 8)]),
-      child: Row(
-        children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(icon, color: color)),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface)),
-          ])),
-        ],
-      ),
-    );
-  }
+class _Stat extends StatelessWidget {
+  const _Stat({required this.label, required this.value, required this.icon});
+  final String label, value;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 10),
+    child: ListTile(leading: Icon(icon, color: Theme.of(context).colorScheme.primary), title: Text(label), trailing: Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
+  );
 }

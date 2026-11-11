@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flowtop/features/notifications/data/datasources/fcm_messaging_service.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,11 +15,30 @@ import 'package:flowtop/features/auth/data/repositories/auth_repository_impl.dar
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
 final googleSignInProvider = Provider<GoogleSignIn>((ref) => GoogleSignIn());
 
+/// Keep one messaging service alive for this application session.
+final fcmServiceProvider = Provider<FcmMessagingService>((ref) {
+  final service = createFcmMessagingService();
+  ref.onDispose(() => unawaited(service.dispose()));
+  return service;
+});
+
+/// Start messaging without preventing the app from opening if FCM is unavailable.
+final fcmStartupProvider = Provider<void>((ref) {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  unawaited(ref.read(fcmServiceProvider).initialize().catchError((Object error) {
+    debugPrint('FCM initialization failed: $error');
+  }));
+});
+
 /// Auth remote data source provider.
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   final auth = ref.watch(firebaseAuthProvider);
   final googleSignIn = ref.watch(googleSignInProvider);
-  return AuthRemoteDataSourceImpl(auth, googleSignIn);
+  return AuthRemoteDataSourceImpl(auth, googleSignIn,
+    beforeSignOut: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+        ? () => ref.read(fcmServiceProvider).unregisterCurrentDevice()
+        : null,
+  );
 });
 
 /// Auth repository provider.

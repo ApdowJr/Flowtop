@@ -207,6 +207,7 @@ class AppRoutes {
   static const String workspaceMembers = '/workspace-members';
   static const String workspaceInvitations = '/workspace-invitations';
   static const String statistics = '/statistics';
+  static const String notifications = '/notifications';
   static const String profile = '/profile';
   static const String settings = '/settings';
 

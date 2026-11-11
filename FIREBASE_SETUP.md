@@ -122,3 +122,26 @@ on the device**:
    machine, another CI run with a different signing key, or another release key
    will not fix the installed APK. CI prints warnings if its current fingerprint
    is missing from the supplied configuration.
+
+### Notifications and security validation
+
+The Android app registers a device token after the notification permission is
+requested. Signing out removes this device's token before the Firebase session
+ends; other devices remain signed in. In-app notifications written by trusted
+server code are forwarded to active tokens by the `deliverNotification` Cloud
+Function. Scheduled reminders currently run hourly; foreground display,
+notification-tap navigation and delivery under retry conditions still require
+real-device verification.
+
+Before deploying, run the Firestore rules tests and build the functions:
+
+```bash
+npm ci
+npx firebase emulators:exec --project demo-flowtop --only firestore 'node --test test/rules/*.test.js'
+(cd firebase/functions && npm ci && npm run build)
+```
+
+Deploy the matching rules and functions together to the intended Firebase
+project only after reviewing the tests and configuration. The new notification
+rules allow clients to update read state but not create notification content.
+Deployment requires Firebase project access and is not performed by the app build.

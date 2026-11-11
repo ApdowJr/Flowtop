@@ -25,18 +25,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Stream<ProjectEntity?> watchProject(String projectId) {
-    // Collection-group query to find a project by ID across all workspaces.
-    // Security Rules enforce workspace membership.
-    return _firestore
-        .collectionGroup(_col)
-        .where(FieldPath.documentId, isEqualTo: projectId)
-        .limit(1)
-        .snapshots()
-        .map((snapshot) {
-          if (snapshot.docs.isEmpty) return null;
-          return ProjectModel.fromMap(snapshot.docs.first.id, snapshot.docs.first.data()).toEntity();
-        });
+  Stream<ProjectEntity?> watchProject(String workspaceId, String projectId) {
+    return _doc(workspaceId, projectId).snapshots().map((doc) {
+      final data = doc.data();
+      return data == null ? null : ProjectModel.fromMap(doc.id, data).toEntity();
+    });
   }
 
   @override
@@ -72,13 +65,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<void> deleteProject(String projectId) async {
-    // Fetch the project to determine its workspace, then delete.
-    final project = await watchProject(projectId).first;
-    if (project == null) return;
-    final workspaceId = project.workspaceId;
-    if (workspaceId.isEmpty) return;
-
+  Future<void> deleteProject(String workspaceId, String projectId) async {
     // Delete all tasks associated with this project.
     final tasksSnap = await _firestore
         .collection('workspaces')
@@ -108,20 +95,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
     final projectSnap = await projectDoc.get();
     if (!projectSnap.exists) return;
 
-    final project = ProjectModel.fromMap(projectId, projectSnap.data()!);
-    final taskIds = project.taskIds;
-
-    if (taskIds.isEmpty) {
-      await projectDoc.update({'progress': 0.0});
-      return;
-    }
-
-    // Fetch all tasks for this project.
+    // Use the actual projectId field rather than the stale taskIds array.
     final tasksSnap = await _firestore
         .collection('workspaces')
         .doc(workspaceId)
         .collection('tasks')
-        .where(FieldPath.documentId, whereIn: taskIds.take(30).toList()) // Firestore limit: 30
+        .where('projectId', isEqualTo: projectId)
         .get();
 
     int completed = 0;

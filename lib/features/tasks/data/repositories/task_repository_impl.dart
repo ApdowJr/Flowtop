@@ -67,18 +67,11 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Stream<TaskEntity?> watchTask(String taskId) {
-    // Collection-group query across all workspaces to find a task by ID.
-    // Security Rules ensure the requesting user is a member of the workspace.
-    return _firestore
-        .collectionGroup(_tasksCollection)
-        .where(FieldPath.documentId, isEqualTo: taskId)
-        .limit(1)
-        .snapshots()
-        .map((snapshot) {
-          if (snapshot.docs.isEmpty) return null;
-          return TaskModel.fromMap(snapshot.docs.first.id, snapshot.docs.first.data()).toEntity();
-        });
+  Stream<TaskEntity?> watchTask(String workspaceId, String taskId) {
+    return _taskDoc(workspaceId, taskId).snapshots().map((doc) {
+      final data = doc.data();
+      return data == null ? null : TaskModel.fromMap(doc.id, data).toEntity();
+    });
   }
 
   @override
@@ -127,26 +120,21 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<void> deleteTask(String taskId) async {
-    // Best effort: delete subtasks + attachments references, then the task doc.
-    // The workspace must be known; fetch it first.
-    final task = await watchTask(taskId).first;
-    if (task == null || task.workspaceId == null) return;
-    final workspaceId = task.workspaceId!;
-    final batch = _firestore.batch();
-    batch.delete(_taskDoc(workspaceId, taskId));
-    // Delete subtask docs in the workspace-scoped subcollection.
-    for (final subId in task.subtaskIds) {
-      batch.delete(_subtasksRef(workspaceId, taskId).doc(subId));
+  Future<void> deleteTask(String workspaceId, String taskId) async {
+    final subtasks = await _subtasksRef(workspaceId, taskId).get();
+    if (subtasks.docs.length > 499) {
+      throw StateError('Too many subtasks to delete in one operation.');
     }
+    final batch = _firestore.batch();
+    for (final subtask in subtasks.docs) {
+      batch.delete(subtask.reference);
+    }
+    batch.delete(_taskDoc(workspaceId, taskId));
     await batch.commit();
   }
 
   @override
-  Future<void> toggleTaskCompletion(String taskId, bool completed) async {
-    final task = await watchTask(taskId).first;
-    if (task == null || task.workspaceId == null) return;
-    final workspaceId = task.workspaceId!;
+  Future<void> toggleTaskCompletion(String workspaceId, String taskId, bool completed) async {
     await _taskDoc(workspaceId, taskId).update({
       'status': completed ? 'done' : 'todo',
       if (completed) 'completedAt': Timestamp.fromDate(DateTime.now())

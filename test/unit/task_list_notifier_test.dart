@@ -131,7 +131,7 @@ void main() {
           ))
           .thenAnswer((_) => Stream.value([task]));
 
-      when(() => mockTaskRepository.deleteTask('t1'))
+      when(() => mockTaskRepository.deleteTask('ws1', 't1'))
           .thenAnswer((_) async => null);
       when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);
@@ -162,7 +162,7 @@ void main() {
           ))
           .thenAnswer((_) => Stream.value([task]));
 
-      when(() => mockTaskRepository.deleteTask('t1'))
+      when(() => mockTaskRepository.deleteTask('ws1', 't1'))
           .thenAnswer((_) async => null);
 
       final notifier = container.read(taskListProvider('ws1').notifier);
@@ -188,7 +188,7 @@ void main() {
           ))
           .thenAnswer((_) => Stream.value([task]));
 
-      when(() => mockTaskRepository.toggleTaskCompletion('t1', true))
+      when(() => mockTaskRepository.toggleTaskCompletion('ws1', 't1', true))
           .thenAnswer((_) async => null);
       when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);
@@ -218,7 +218,7 @@ void main() {
             query: any(named: 'query'),
           ))
           .thenAnswer((_) => Stream.value([task]));
-      when(() => mockTaskRepository.deleteTask('t1'))
+      when(() => mockTaskRepository.deleteTask('ws1', 't1'))
           .thenAnswer((_) async => null);
       when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);
@@ -248,7 +248,7 @@ void main() {
             query: any(named: 'query'),
           ))
           .thenAnswer((_) => Stream.value([task]));
-      when(() => mockTaskRepository.toggleTaskCompletion('t1', true))
+      when(() => mockTaskRepository.toggleTaskCompletion('ws1', 't1', true))
           .thenAnswer((_) async => null);
       when(() => mockProjectRepository.recalculateProgress('ws1', 'p1'))
           .thenAnswer((_) async => null);

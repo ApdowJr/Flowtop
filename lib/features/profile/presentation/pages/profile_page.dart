@@ -36,7 +36,10 @@ class ProfilePage extends ConsumerWidget {
           title: const Text('Dark mode'),
           subtitle: const Text('Adjust the look of your workspace'),
           value: isDark,
-          onChanged: (value) => ref.read(themeModeProvider.notifier).state = value ? ThemeMode.dark : ThemeMode.light,
+          onChanged: (value) {
+            ref.read(themeModeProvider.notifier).state = value ? ThemeMode.dark : ThemeMode.light;
+            ref.read(preferencesProvider)?.setString('theme_mode', value ? 'dark' : 'light');
+          },
         )),
         const SizedBox(height: 28),
         OutlinedButton.icon(
