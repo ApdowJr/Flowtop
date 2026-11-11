@@ -54,7 +54,8 @@ service cloud.firestore {
     // Each user owns exactly one document keyed by their Firebase Auth UID.
     match /users/{userId} {
       allow read: if isSignedIn() && (userId == getUserId());
-      allow create: if isSignedIn() && (userId == getUserId());
+      allow create: if isSignedIn() && (userId == getUserId())
+        && request.resource.data.uid == getUserId();
       allow update: if isSignedIn()
         && (userId == getUserId())
         // uid must match Auth UID and can never be changed.
@@ -68,8 +69,11 @@ service cloud.firestore {
     // ============ users/{userId}/notifications ============
     match /users/{userId}/notifications/{notificationId} {
       allow read: if isSignedIn() && (userId == getUserId());
-      allow create: if isSignedIn() && (userId == getUserId());
-      allow update: if isSignedIn() && (userId == getUserId());
+      // Notification content is created by trusted server-side code.
+      allow create: if false;
+      allow update: if isSignedIn() && userId == getUserId()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
       allow delete: if isSignedIn() && (userId == getUserId());
     }
 
@@ -191,40 +195,39 @@ service cloud.firestore {
       // Owner must be the requesting user unless caller has assign rights.
       // Task assignee (if set) must be a workspace member.
       allow create: if isWorkspaceMember(workspaceId)
+        && getMemberRole(workspaceId) != 'viewer'
+        && request.resource.data.workspaceId == workspaceId
+        && request.resource.data.ownerId is string
         && (request.resource.data.ownerId == getUserId()
             || isWorkspaceOwnerAdminOrManager(workspaceId))
-        && (!('assigneeId' in request.resource.data.keys()
-            && request.resource.data.assigneeId != null
-            && !isMember(workspaceId, request.resource.data.assigneeId)));
-      // Owner, assignee, or privileged roles may update.
-      // Protected fields: ownerId, assigneeId, workspaceId cannot be changed by non-privileged users.
-      // New assignee must be a workspace member.
+        && (request.resource.data.get('assigneeId', null) == null
+            || isMember(workspaceId, request.resource.data.assigneeId));
+      // Owner, assignee, or a privileged member may edit a task, but only
+      // privileged members can change ownership or assignment.
       allow update: if isWorkspaceMember(workspaceId)
+        && getMemberRole(workspaceId) != 'viewer'
         && (resource.data.ownerId == getUserId()
-            || resource.data.assigneeId == getUserId()
+            || resource.data.get('assigneeId', null) == getUserId()
             || isWorkspaceOwnerAdminOrManager(workspaceId))
-        && (!('ownerId' in request.resource.data.keys()
-            && request.resource.data.ownerId != resource.data.ownerId
-            && !isWorkspaceOwnerAdminOrManager(workspaceId)))
-        && (!('assigneeId' in request.resource.data.keys()
-            && request.resource.data.assigneeId != resource.data.assigneeId
-            && !isWorkspaceOwnerAdminOrManager(workspaceId)))
-        && (!('workspaceId' in request.resource.data.keys()
-            && request.resource.data.workspaceId != resource.data.workspaceId))
-        && (!('assigneeId' in request.resource.data.keys()
-            && request.resource.data.assigneeId != null
-            && !isMember(workspaceId, request.resource.data.assigneeId)));
-      // Owner/admin may delete any task; task owner may delete their own task.
-      allow delete: if isWorkspaceOwnerOrAdmin(workspaceId)
-        || resource.data.ownerId == getUserId();
+        && request.resource.data.workspaceId == workspaceId
+        && request.resource.data.ownerId is string
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerId', 'assigneeId'])
+            || isWorkspaceOwnerAdminOrManager(workspaceId))
+        && (request.resource.data.get('assigneeId', null) == null
+            || isMember(workspaceId, request.resource.data.assigneeId));
+      allow delete: if isWorkspaceMember(workspaceId)
+        && (isWorkspaceOwnerOrAdmin(workspaceId)
+            || (getMemberRole(workspaceId) != 'viewer' && resource.data.ownerId == getUserId()));
     }
 
     // ============ workspaces/{workspaceId}/tasks/{taskId}/subtasks ============
     match /workspaces/{workspaceId}/tasks/{taskId}/subtasks/{subtaskId} {
       allow read: if isWorkspaceMember(workspaceId);
-      allow create: if isWorkspaceMember(workspaceId);
-      allow update: if isWorkspaceMember(workspaceId);
-      allow delete: if isWorkspaceMember(workspaceId);
+      allow create, update, delete: if isWorkspaceMember(workspaceId)
+        && getMemberRole(workspaceId) != 'viewer'
+        && (isWorkspaceOwnerAdminOrManager(workspaceId)
+            || get(/databases/$(database)/documents/workspaces/$(workspaceId)/tasks/$(taskId)).data.ownerId == getUserId()
+            || get(/databases/$(database)/documents/workspaces/$(workspaceId)/tasks/$(taskId)).data.get('assigneeId', null) == getUserId());
     }
 
     // ============ workspaces/{workspaceId}/categories ============
