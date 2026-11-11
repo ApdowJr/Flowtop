@@ -21,6 +21,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscure = true;
+  bool _googleLoading = false;
 
   @override
   void dispose() {
@@ -30,7 +31,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   }
 
   Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_googleLoading || ref.read(authProvider).isLoading || !_formKey.currentState!.validate()) return;
     await ref.read(authProvider.notifier).signInWithEmailPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -41,6 +42,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   }
 
   Future<void> _signInWithGoogle() async {
+    if (_googleLoading || ref.read(authProvider).isLoading) return;
+    setState(() => _googleLoading = true);
     try {
       final googleSignIn = ref.read(googleSignInProvider);
       final account = await googleSignIn.signIn();
@@ -92,13 +95,15 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           const SnackBar(content: Text('Google sign-in failed. Please try again.')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final loading = authState.isLoading;
+    final loading = authState.isLoading || _googleLoading;
     final error = authState.error;
 
     return Scaffold(

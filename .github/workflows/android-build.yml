@@ -81,10 +81,10 @@ jobs:
           fi
           exit "$status"
 
-      - name: Test updated dashboard and workspace UI
+      - name: Test authentication, dashboard and workspace UI
         run: |
           set +e
-          flutter test --reporter expanded test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart > /tmp/flowtop-tests.txt 2>&1
+          flutter test --reporter expanded test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart test/widget/auth_flow_ui_test.dart test/unit/auth_provider_test.dart > /tmp/flowtop-tests.txt 2>&1
           status=$?
           cat /tmp/flowtop-tests.txt
           if [ "$status" -ne 0 ]; then

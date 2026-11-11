@@ -33,7 +33,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   }
 
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (ref.read(authProvider).isLoading || !_formKey.currentState!.validate()) return;
     await ref.read(authProvider.notifier).registerWithEmailPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text,
