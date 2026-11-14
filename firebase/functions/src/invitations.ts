@@ -3,9 +3,15 @@ import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * Create a workspace invitation (callable).
  * Only owner/admin/manager may invite. Expiration enforced server-side.
+ *
+ * The invitation stores the workspace and inviter names, because the invitee
+ * is not a member yet and therefore cannot read the workspace document.
  */
 export const createInvitation = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -20,15 +26,26 @@ export const createInvitation = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('invalid-argument', 'workspaceId, email and role are required.');
   }
 
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Enter a valid email address.');
+  }
+
   const validRoles = ['owner', 'admin', 'manager', 'member', 'viewer'];
   if (!validRoles.includes(role)) {
     throw new functions.https.HttpsError('invalid-argument', 'Invalid role.');
   }
 
   const callerUid = context.auth.uid;
+  const callerEmail = (context.auth.token.email as string | undefined)?.toLowerCase();
+  if (callerEmail && callerEmail === normalizedEmail) {
+    throw new functions.https.HttpsError('invalid-argument', 'You cannot invite yourself.');
+  }
+
+  const workspaceRef = db.collection('workspaces').doc(workspaceId);
 
   // Verify caller is a member with invite rights.
-  const callerMember = await db.collection('workspaces').doc(workspaceId).collection('members').doc(callerUid).get();
+  const callerMember = await workspaceRef.collection('members').doc(callerUid).get();
   if (!callerMember.exists) {
     throw new functions.https.HttpsError('permission-denied', 'You are not a member of this workspace.');
   }
@@ -40,32 +57,51 @@ export const createInvitation = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('permission-denied', 'Only the owner can grant the owner role.');
   }
 
-  // Expires 7 days from now.
-  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  // Refuse duplicates: people who already belong, and invitations still open.
+  const [workspaceDoc, existingMember, existingInvitations] = await Promise.all([
+    workspaceRef.get(),
+    workspaceRef.collection('members').where('email', '==', normalizedEmail).limit(1).get(),
+    workspaceRef.collection('invitations').where('email', '==', normalizedEmail).get(),
+  ]);
+  if (!existingMember.empty) {
+    throw new functions.https.HttpsError('already-exists', 'This person is already a member of the workspace.');
+  }
+  const nowMs = Date.now();
+  const hasOpenInvitation = existingInvitations.docs.some((doc) => {
+    const invitation = doc.data();
+    const expiresAt = invitation.expiresAt as admin.firestore.Timestamp | undefined;
+    return invitation.status === 'pending' && !!expiresAt && expiresAt.toMillis() > nowMs;
+  });
+  if (hasOpenInvitation) {
+    throw new functions.https.HttpsError('already-exists', 'This person already has a pending invitation.');
+  }
 
-  const invitationRef = db.collection('workspaces').doc(workspaceId).collection('invitations').doc();
+  const inviterName = await displayNameOf(callerUid, context.auth.token.name as string | undefined);
+  const workspaceName = (workspaceDoc.data()?.name as string | undefined) ?? 'a workspace';
+
+  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(nowMs + INVITATION_LIFETIME_MS));
+
+  const invitationRef = workspaceRef.collection('invitations').doc();
   await invitationRef.set({
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     role,
     status: 'pending',
     invitedBy: callerUid,
+    ...(inviterName ? { invitedByName: inviterName } : {}),
     workspaceId,
+    workspaceName,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     expiresAt,
   });
 
-  // Dispatch an invitation notification via FCM (server-side only).
-  try {
-    await sendNotificationToEmail(email, {
-      title: 'Workspace invitation',
-      body: `You have been invited to join a workspace as a ${role}.`,
-      type: 'workspace_invitation',
-      workspaceId,
-    });
-  } catch (e) {
-    // Notification failure must not fail the invitation creation.
-    functions.logger.warn('Failed to send invitation notification', e);
-  }
+  // Tell the invitee when they already have an account. Writing the in-app
+  // notification is enough: deliverNotification pushes it to their devices.
+  await notifyInvitee(normalizedEmail, {
+    title: 'Workspace invitation',
+    body: `${inviterName ?? 'Someone'} invited you to join ${workspaceName} as ${role}.`,
+    workspaceId,
+    invitationId: invitationRef.id,
+  });
 
   return { invitationId: invitationRef.id };
 });
@@ -84,8 +120,15 @@ export const acceptInvitation = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('invalid-argument', 'workspaceId and invitationId are required.');
   }
 
+  // Invitations belong to an email address, and anybody can register with an
+  // address that is not theirs. Only a verified address may claim one.
+  if (context.auth.token.email_verified !== true) {
+    throw new functions.https.HttpsError('failed-precondition', 'Verify your email address before accepting invitations.');
+  }
+
   const callerUid = context.auth.uid;
   const callerEmail = context.auth.token.email as string;
+  const callerName = await displayNameOf(callerUid, context.auth.token.name as string | undefined);
 
   const invitationRef = db.collection('workspaces').doc(workspaceId).collection('invitations').doc(invitationId);
   const invitation = await invitationRef.get();
@@ -122,7 +165,8 @@ export const acceptInvitation = functions.https.onCall(async (data, context) => 
     t.update(invitationRef, { status: 'accepted', acceptedAt: admin.firestore.FieldValue.serverTimestamp(), acceptedBy: callerUid });
     t.set(memberRef, {
       userId: callerUid,
-      email: callerEmail,
+      email: callerEmail?.toLowerCase(),
+      ...(callerName ? { displayName: callerName } : {}),
       role: currentData.role ?? 'member',
       workspaceId,
       joinedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -227,24 +271,52 @@ export const cleanExpiredInvitations = functions.https.onCall(async (data, conte
     const snap = await db.collection('workspaces').doc(wsId).collection('invitations')
       .where('status', '==', 'pending')
       .where('expiresAt', '<', admin.firestore.Timestamp.fromDate(new Date())).get();
+    if (snap.empty) continue;
     const batch = db.batch();
-    snap.docs.forEach(d => { batch.delete(d.ref); deleted++; });
-    if (deleted > 0) await batch.commit();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    deleted += snap.size;
   }
   return { deleted };
 });
 
 /**
- * Helper: look up FCM tokens for an email and send a notification.
- * (Implementation relies on a user_fcm_tokens collection maintained by the client.)
+ * Best-effort display name for a user: the Auth profile first, then the name
+ * claim of the caller's token.
  */
-async function sendNotificationToEmail(email: string, payload: { title: string; body: string; type: string; workspaceId?: string }) {
-  const tokensSnap = await db.collectionGroup('fcm_tokens').where('email', '==', email.toLowerCase()).limit(5).get();
-  const tokens = tokensSnap.docs.map(d => d.id).filter(Boolean);
-  if (tokens.length === 0) return;
-  await admin.messaging().sendMulticast({
-    tokens,
-    notification: { title: payload.title, body: payload.body },
-    data: { type: payload.type, ...(payload.workspaceId ? { workspaceId: payload.workspaceId } : {}) },
-  });
+async function displayNameOf(uid: string, tokenName?: string): Promise<string | undefined> {
+  try {
+    const record = await admin.auth().getUser(uid);
+    return record.displayName || tokenName || undefined;
+  } catch (e) {
+    functions.logger.warn('Could not read the display name of a user', e);
+    return tokenName || undefined;
+  }
+}
+
+/**
+ * Create an in-app notification for the person behind [email], if they already
+ * have an account. The deliverNotification trigger forwards it as a push
+ * notification. A failure never fails the invitation itself.
+ */
+async function notifyInvitee(
+  email: string,
+  payload: { title: string; body: string; workspaceId: string; invitationId: string },
+): Promise<void> {
+  try {
+    const invitee = await admin.auth().getUserByEmail(email);
+    await db.collection('users').doc(invitee.uid).collection('notifications').add({
+      type: 'workspace_invitation',
+      title: payload.title,
+      body: payload.body,
+      workspaceId: payload.workspaceId,
+      invitationId: payload.invitationId,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    if ((e as { code?: string }).code !== 'auth/user-not-found') {
+      functions.logger.warn('Failed to notify the invitee', e);
+    }
+  }
 }

@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowtop/features/workspaces/data/repositories/workspace_repository_impl.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
 
+class MockFirebaseFirestore extends Mock implements FirebaseFirestore {}
+
 class MockFirebaseFunctions extends Mock implements FirebaseFunctions {}
 
 class MockHttpsCallable extends Mock implements HttpsCallable {}
@@ -22,7 +24,7 @@ void main() {
       mockFunctions = MockFirebaseFunctions();
       mockCallable = MockHttpsCallable();
       repository = WorkspaceRepositoryImpl(
-        FirebaseFirestore.instance,
+        MockFirebaseFirestore(),
         mockFunctions,
       );
     });
@@ -109,7 +111,7 @@ void main() {
 
     test('falls back to FirebaseFunctions.instance when no functions injected',
         () async {
-      final repoNoFunctions = WorkspaceRepositoryImpl(FirebaseFirestore.instance);
+      final repoNoFunctions = WorkspaceRepositoryImpl(MockFirebaseFirestore());
 
       when(() => mockFunctions.httpsCallable('createInvitation'))
           .thenReturn(mockCallable);

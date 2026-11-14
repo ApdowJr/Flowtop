@@ -19,6 +19,7 @@ export const deliverNotification = functions.firestore
           ...(typeof data.type === 'string' ? { type: data.type } : {}),
           ...(typeof data.workspaceId === 'string' ? { workspaceId: data.workspaceId } : {}),
           ...(typeof data.taskId === 'string' ? { taskId: data.taskId } : {}),
+          ...(typeof data.invitationId === 'string' ? { invitationId: data.invitationId } : {}),
         },
       });
       const invalid = result.responses.flatMap((response, index) => {
@@ -35,4 +36,32 @@ export const deliverNotification = functions.firestore
         functions.logger.warn('Some notification deliveries failed', { userId: context.params.userId, failureCount: result.failureCount });
       }
     }
+  });
+
+/**
+ * Tell people when a task is assigned to them. Runs for every write of a task
+ * and only reacts when the assignee changed to somebody other than the creator,
+ * so editing a task never notifies twice. deliverNotification pushes the
+ * resulting notification to the assignee's devices.
+ */
+export const notifyTaskAssignment = functions.firestore
+  .document('workspaces/{workspaceId}/tasks/{taskId}')
+  .onWrite(async (change, context) => {
+    const after = change.after.data();
+    if (!after) return;
+    const assigneeId = after.assigneeId;
+    if (typeof assigneeId !== 'string' || assigneeId.length === 0) return;
+    if (assigneeId === change.before.data()?.assigneeId) return;
+    if (assigneeId === after.ownerId) return;
+
+    const title = typeof after.title === 'string' && after.title.length > 0 ? after.title : 'a task';
+    await admin.firestore().collection('users').doc(assigneeId).collection('notifications').add({
+      type: 'task_assigned',
+      title: 'New task assigned',
+      body: `You have been assigned "${title}".`,
+      taskId: context.params.taskId,
+      workspaceId: context.params.workspaceId,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
   });

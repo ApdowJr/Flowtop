@@ -18,6 +18,8 @@ abstract class AuthRemoteDataSource {
   Future<void> sendPasswordResetEmail(String email);
   Future<void> signOut();
   Future<void> updateProfile({String? displayName, String? photoUrl});
+  Future<void> sendEmailVerification();
+  Future<void> reloadUser();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -82,11 +84,34 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       code: 'not-authenticated',
       message: 'No authenticated user.',
     );
-    await user.updateDisplayName(displayName);
+    if (displayName != null) {
+      await user.updateDisplayName(displayName);
+    }
     if (photoUrl != null) {
       await user.updatePhotoURL(photoUrl);
     }
     await user.reload();
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'No authenticated user.',
+      );
+    }
+    await user.sendEmailVerification();
+  }
+
+  @override
+  Future<void> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.reload();
+    // Force a new ID token: the email_verified claim only changes with it.
+    await _auth.currentUser?.getIdToken(true);
   }
 }
 

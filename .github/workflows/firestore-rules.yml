@@ -21,6 +21,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Validate Firestore indexes
+        run: node scripts/validate-firestore-indexes.js firestore.indexes.json
       - name: Run Firestore emulator security tests
         run: |
           set +e

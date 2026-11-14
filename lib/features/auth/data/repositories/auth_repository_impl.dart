@@ -47,15 +47,35 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     }
 
+    // Keep the name on the Auth profile as well, so it is available as soon as
+    // the user is signed in (greeting, invitations). A failure here is not
+    // fatal: the account exists and the profile document below holds the name.
+    final name = displayName?.trim();
+    if (name != null && name.isNotEmpty) {
+      try {
+        await _remoteDataSource.updateProfile(displayName: name);
+      } catch (_) {
+        // Intentionally ignored, see above.
+      }
+    }
+    // Invitations can only be claimed with a verified email address.
+    try {
+      await _remoteDataSource.sendEmailVerification();
+    } catch (_) {
+      // Intentionally ignored: the user can ask for the email again later.
+    }
+    final registeredUser = _remoteDataSource.currentUser ?? firebaseUser;
+    final entity = _userEntityFromFirebaseUser(registeredUser).copyWith(
+      displayName: (name == null || name.isEmpty) ? null : name,
+    );
+
     // Initialize the user profile document (trusted server-side fields only).
     await _firestore.collection(_usersCollection).doc(firebaseUser.uid).set(
-      UserModel.fromEntity(
-        _userEntityFromFirebaseUser(firebaseUser).copyWith(displayName: displayName),
-      ).toMap(),
+      UserModel.fromEntity(entity).toMap(),
       SetOptions(merge: true),
     );
 
-    return _userEntityFromFirebaseUser(firebaseUser);
+    return entity;
   }
 
   @override
@@ -113,11 +133,20 @@ class AuthRepositoryImpl implements AuthRepository {
     await _remoteDataSource.updateProfile(displayName: displayName, photoUrl: photoUrl);
     final user = _remoteDataSource.currentUser;
     if (user == null) return;
-    await _firestore.collection(_usersCollection).doc(user.uid).update({
+    // Merge instead of update so a missing profile document is created. The uid
+    // is part of the payload because the security rules require it to match.
+    await _firestore.collection(_usersCollection).doc(user.uid).set({
+      'uid': user.uid,
       if (displayName != null) 'displayName': displayName,
       if (photoUrl != null) 'photoUrl': photoUrl,
-    });
+    }, SetOptions(merge: true));
   }
+
+  @override
+  Future<void> sendEmailVerification() => _remoteDataSource.sendEmailVerification();
+
+  @override
+  Future<void> reloadUser() => _remoteDataSource.reloadUser();
 
   UserEntity _userEntityFromFirebaseUser(User user) {
     return UserEntity(

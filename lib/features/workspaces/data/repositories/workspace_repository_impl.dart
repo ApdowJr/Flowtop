@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
+import 'package:flowtop/features/workspaces/domain/entities/workspace_invitation_entity.dart';
 import 'package:flowtop/features/workspaces/domain/repositories/workspace_repository.dart';
+import 'package:flowtop/features/workspaces/data/models/workspace_invitation_model.dart';
 import 'package:flowtop/features/workspaces/data/models/workspace_model.dart';
 
 class WorkspaceRepositoryImpl implements WorkspaceRepository {
@@ -20,6 +22,9 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
 
   DocumentReference<Map<String, dynamic>> _workspaceDoc(String workspaceId) =>
       _workspacesRef().doc(workspaceId);
+
+  CollectionReference<Map<String, dynamic>> _invitationsRef(String workspaceId) =>
+      _workspaceDoc(workspaceId).collection('invitations');
 
   DocumentReference<Map<String, dynamic>> _memberDoc(
       String workspaceId, String userId) {
@@ -80,7 +85,11 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
   }
 
   @override
-  Future<String> createWorkspace(WorkspaceEntity workspace) async {
+  Future<String> createWorkspace(
+    WorkspaceEntity workspace, {
+    String? ownerEmail,
+    String? ownerName,
+  }) async {
     final id = _firestore.collection(_workspacesCollection).doc().id;
     final now = DateTime.now();
 
@@ -93,6 +102,8 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
     await _workspaceDoc(id).set(model.toMap());
 
     // Create the owner membership record.
+    final email = ownerEmail?.trim().toLowerCase();
+    final name = ownerName?.trim();
     await _memberDoc(id, workspace.ownerId).set(
       WorkspaceMemberModel.fromEntity(
         WorkspaceMemberEntity(
@@ -100,6 +111,8 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
           userId: workspace.ownerId,
           role: WorkspaceRole.owner,
           joinedAt: now,
+          email: (email == null || email.isEmpty) ? null : email,
+          displayName: (name == null || name.isEmpty) ? null : name,
         ),
       ).toMap(),
     );
@@ -109,68 +122,60 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
 
   @override
   Future<void> updateWorkspace(String workspaceId, WorkspaceEntity workspace) async {
-    await _workspaceDoc(workspaceId).update(
-      WorkspaceModel.fromEntity(
-        workspace.copyWith(id: workspaceId),
-      ).toMap(),
-    );
+    // Only the fields a user can edit. The rest of the document (owner, creation
+    // time) must stay untouched.
+    await _workspaceDoc(workspaceId).update({
+      'name': workspace.name,
+      'description': workspace.description,
+      'color': workspace.color,
+    });
   }
 
   @override
   Future<void> deleteWorkspace(String workspaceId) async {
-    // Delete all subcollections then the workspace doc.
+    final workspace = _workspaceDoc(workspaceId);
+
+    // Content first, in chunks (a batch holds at most 500 writes). The caller
+    // stays a member until the very end, which the security rules need to
+    // authorize every one of these deletes. Activity logs are append-only for
+    // clients, so they are left behind; nobody can read them without access.
+    final tasks = await workspace.collection('tasks').get();
+    for (final task in tasks.docs) {
+      await _deleteAll(await task.reference.collection('subtasks').get());
+    }
+    await _deleteAll(tasks);
+    for (final name in const ['projects', 'categories', 'task_attachments']) {
+      await _deleteAll(await workspace.collection(name).get());
+    }
+
+    // Finally the invitations, every membership (the owner's included) and the
+    // workspace document in one atomic batch. The rules only let the owner drop
+    // their own membership in the same batch that deletes the workspace.
     final batch = _firestore.batch();
-
-    // Delete members.
-    final membersSnap = await _membersRef(workspaceId).get();
-    for (final doc in membersSnap.docs) {
+    final invitations = await _invitationsRef(workspaceId).get();
+    for (final doc in invitations.docs) {
       batch.delete(doc.reference);
     }
-
-    // Delete invitations.
-    final invSnap = await _workspaceDoc(workspaceId).collection('invitations').get();
-    for (final doc in invSnap.docs) {
+    final members = await _membersRef(workspaceId).get();
+    for (final doc in members.docs) {
       batch.delete(doc.reference);
     }
-
-    // Delete projects.
-    final projSnap = await _workspaceDoc(workspaceId).collection('projects').get();
-    for (final doc in projSnap.docs) {
-      batch.delete(doc.reference);
-    }
-
-    // Delete tasks and their subtasks.
-    final tasksSnap = await _workspaceDoc(workspaceId).collection('tasks').get();
-    for (final taskDoc in tasksSnap.docs) {
-      batch.delete(taskDoc.reference);
-      final subsSnap = await taskDoc.reference.collection('subtasks').get();
-      for (final subDoc in subsSnap.docs) {
-        batch.delete(subDoc.reference);
-      }
-    }
-
-    // Delete categories.
-    final catSnap = await _workspaceDoc(workspaceId).collection('categories').get();
-    for (final doc in catSnap.docs) {
-      batch.delete(doc.reference);
-    }
-
-    // Delete task attachments metadata.
-    final attSnap =
-        await _workspaceDoc(workspaceId).collection('task_attachments').get();
-    for (final doc in attSnap.docs) {
-      batch.delete(doc.reference);
-    }
-
-    // Delete activity logs.
-    final logSnap =
-        await _workspaceDoc(workspaceId).collection('activity_logs').get();
-    for (final doc in logSnap.docs) {
-      batch.delete(doc.reference);
-    }
-
-    batch.delete(_workspaceDoc(workspaceId));
+    batch.delete(workspace);
     await batch.commit();
+  }
+
+  /// Deletes every document of [snapshot], at most 400 per batch.
+  Future<void> _deleteAll(QuerySnapshot<Map<String, dynamic>> snapshot) async {
+    const chunkSize = 400;
+    final docs = snapshot.docs;
+    for (var start = 0; start < docs.length; start += chunkSize) {
+      final batch = _firestore.batch();
+      final end = start + chunkSize < docs.length ? start + chunkSize : docs.length;
+      for (final doc in docs.sublist(start, end)) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
   }
 
   @override
@@ -206,6 +211,65 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
       'email': email.toLowerCase(),
       'role': _roleName(role),
     });
+  }
+
+  @override
+  Stream<List<WorkspaceInvitationEntity>> watchWorkspaceInvitations(String workspaceId) {
+    return _invitationsRef(workspaceId).snapshots().map((snapshot) {
+      return _newestFirst(snapshot.docs, workspaceId);
+    });
+  }
+
+  @override
+  Stream<List<WorkspaceInvitationEntity>> watchInvitationsForEmail(String email) {
+    return _firestore
+        .collectionGroup('invitations')
+        .where('email', isEqualTo: email.trim().toLowerCase())
+        .snapshots()
+        .map((snapshot) => _newestFirst(snapshot.docs, ''));
+  }
+
+  List<WorkspaceInvitationEntity> _newestFirst(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    String fallbackWorkspaceId,
+  ) {
+    final invitations = [
+      for (final doc in docs)
+        WorkspaceInvitationModel.fromMap(
+          doc.id,
+          doc.data(),
+          fallbackWorkspaceId: doc.reference.parent.parent?.id ?? fallbackWorkspaceId,
+        ),
+    ];
+    invitations.sort((a, b) {
+      final first = a.createdAt;
+      final second = b.createdAt;
+      if (first == null && second == null) return 0;
+      if (first == null) return -1; // Still being written: show it first.
+      if (second == null) return 1;
+      return second.compareTo(first);
+    });
+    return invitations;
+  }
+
+  @override
+  Future<void> acceptInvitation(String workspaceId, String invitationId) async {
+    // Accepting creates the membership, which only the server may do.
+    final functions = _functions ?? FirebaseFunctions.instance;
+    await functions.httpsCallable('acceptInvitation').call({
+      'workspaceId': workspaceId,
+      'invitationId': invitationId,
+    });
+  }
+
+  @override
+  Future<void> declineInvitation(String workspaceId, String invitationId) async {
+    await _invitationsRef(workspaceId).doc(invitationId).update({'status': 'declined'});
+  }
+
+  @override
+  Future<void> revokeInvitation(String workspaceId, String invitationId) async {
+    await _invitationsRef(workspaceId).doc(invitationId).delete();
   }
 
   @override

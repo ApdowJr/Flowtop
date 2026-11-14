@@ -63,6 +63,8 @@ class WorkspaceMemberEntity extends Equatable {
     required this.userId,
     required this.role,
     this.joinedAt,
+    this.email,
+    this.displayName,
   });
 
   final String workspaceId;
@@ -70,6 +72,21 @@ class WorkspaceMemberEntity extends Equatable {
   final WorkspaceRole role;
   final DateTime? joinedAt;
 
+  /// Contact details copied into the member record. Other members cannot read
+  /// a user's profile document, so this is the only way to show who somebody is.
+  /// Older records, created before these fields existed, do not have them.
+  final String? email;
+  final String? displayName;
+
+  /// The best human-readable label available for this member.
+  String get label {
+    final name = displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    final mail = email?.trim();
+    if (mail != null && mail.isNotEmpty) return mail;
+    return 'Member';
+  }
+
   @override
-  List<Object?> get props => [workspaceId, userId, role, joinedAt];
+  List<Object?> get props => [workspaceId, userId, role, joinedAt, email, displayName];
 }

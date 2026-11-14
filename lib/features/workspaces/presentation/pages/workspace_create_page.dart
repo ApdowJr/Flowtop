@@ -36,10 +36,14 @@ class _WorkspaceCreatePageState extends ConsumerState<WorkspaceCreatePage> {
     }
     setState(() => _saving = true);
     try {
-      final id = await ref.read(workspaceRepositoryProvider).createWorkspace(WorkspaceEntity(
-        id: '', name: _name.text.trim(), description: _description.text.trim(),
-        ownerId: user.uid, role: WorkspaceRole.owner, memberCount: 1,
-      ));
+      final id = await ref.read(workspaceRepositoryProvider).createWorkspace(
+        WorkspaceEntity(
+          id: '', name: _name.text.trim(), description: _description.text.trim(),
+          ownerId: user.uid, role: WorkspaceRole.owner, memberCount: 1,
+        ),
+        ownerEmail: user.email,
+        ownerName: user.displayName,
+      );
       if (!mounted) return;
       ref.read(selectedWorkspaceProvider.notifier).state = id;
       context.go(AppRoutes.dashboard);

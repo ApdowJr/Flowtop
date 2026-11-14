@@ -143,14 +143,23 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserEntity?>> {
   }
 
   /// Update the current user's profile.
+  ///
+  /// The signed-in user stays available while the update runs, so listeners
+  /// such as the selected-workspace reset never mistake it for a sign-out.
+  /// Failures are rethrown for the caller to report.
   Future<void> updateProfile({String? displayName, String? photoUrl}) async {
-    state = const AsyncValue.loading();
-    try {
-      await _repository.updateProfile(displayName: displayName, photoUrl: photoUrl);
-      state = AsyncValue.data(_repository.currentUser);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    await _repository.updateProfile(displayName: displayName, photoUrl: photoUrl);
+    state = AsyncValue.data(_repository.currentUser);
+  }
+
+  /// Send a verification email to the signed-in user. Failures are rethrown.
+  Future<void> sendEmailVerification() => _repository.sendEmailVerification();
+
+  /// Re-read the signed-in user from the server, for example after they
+  /// followed the link in the verification email. Failures are rethrown.
+  Future<void> refreshUser() async {
+    await _repository.reloadUser();
+    state = AsyncValue.data(_repository.currentUser);
   }
 
   @override

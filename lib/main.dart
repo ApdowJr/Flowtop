@@ -25,7 +25,7 @@ void main() async {
   } catch (_) {
     // The app remains usable even if local preferences are unavailable.
   }
-  final storedTheme = preferences?.getString('theme_mode');
+  final storedTheme = preferences?.getString(AppPrefs.themeMode);
   runApp(ProviderScope(
     overrides: [
       preferencesProvider.overrideWithValue(preferences),

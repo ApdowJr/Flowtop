@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
+import 'package:flowtop/core/di/injection_container.dart';
 
 /// Splash screen with the flowTop brand mark.
 class SplashPage extends ConsumerStatefulWidget {
@@ -21,8 +22,18 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   Future<void> _navigateAfterDelay() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    // Let the router redirect based on auth state.
-    context.go(AppRoutes.signIn);
+    final prefs = ref.read(preferencesProvider);
+    if (ref.read(isSignedInProvider)) {
+      // Returning users never need the walkthrough, not even after signing out.
+      await prefs?.setBool(AppPrefs.onboardingSeen, true);
+      if (!mounted) return;
+      context.go(AppRoutes.dashboard);
+      return;
+    }
+    // First-time visitors see the walkthrough once. When preferences cannot be
+    // read the walkthrough is skipped rather than repeated on every launch.
+    final seenOnboarding = prefs?.getBool(AppPrefs.onboardingSeen) ?? true;
+    context.go(seenOnboarding ? AppRoutes.signIn : AppRoutes.onboarding);
   }
 
   @override

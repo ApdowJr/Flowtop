@@ -128,6 +128,8 @@ class WorkspaceMemberModel {
     required this.userId,
     required this.role,
     this.joinedAt,
+    this.email,
+    this.displayName,
   });
 
   final String id;
@@ -135,6 +137,8 @@ class WorkspaceMemberModel {
   final String userId;
   final String role;
   final DateTime? joinedAt;
+  final String? email;
+  final String? displayName;
 
   factory WorkspaceMemberModel.fromEntity(WorkspaceMemberEntity entity) {
     return WorkspaceMemberModel(
@@ -143,6 +147,8 @@ class WorkspaceMemberModel {
       userId: entity.userId,
       role: _roleName(entity.role),
       joinedAt: entity.joinedAt,
+      email: entity.email,
+      displayName: entity.displayName,
     );
   }
 
@@ -153,6 +159,8 @@ class WorkspaceMemberModel {
       userId: map['userId'] as String? ?? '',
       role: map['role'] as String? ?? 'member',
       joinedAt: _toDateTime(map['joinedAt']),
+      email: map['email'] as String?,
+      displayName: map['displayName'] as String?,
     );
   }
 
@@ -162,6 +170,8 @@ class WorkspaceMemberModel {
       'userId': userId,
       'role': role,
       if (joinedAt != null) 'joinedAt': Timestamp.fromDate(joinedAt!),
+      if (email != null) 'email': email,
+      if (displayName != null) 'displayName': displayName,
     };
   }
 
@@ -171,6 +181,8 @@ class WorkspaceMemberModel {
       userId: userId,
       role: _parseRole(role),
       joinedAt: joinedAt,
+      email: email,
+      displayName: displayName,
     );
   }
 

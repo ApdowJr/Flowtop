@@ -1,6 +1,7 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
 import 'package:flowtop/features/auth/presentation/pages/auth_page.dart';
@@ -15,6 +16,7 @@ import 'package:flowtop/features/notifications/presentation/pages/notifications_
 import 'package:flowtop/features/projects/presentation/pages/project_create_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_detail_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_list_page.dart';
+import 'package:flowtop/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:flowtop/features/profile/presentation/pages/profile_page.dart';
 import 'package:flowtop/features/statistics/presentation/pages/statistics_page.dart';
 import 'package:flowtop/features/tasks/presentation/pages/task_create_page.dart';
@@ -26,38 +28,85 @@ import 'package:flowtop/features/workspaces/presentation/pages/workspace_detail_
 import 'package:flowtop/features/workspaces/presentation/pages/workspace_invitations_page.dart';
 import 'package:flowtop/features/workspaces/presentation/pages/workspace_list_page.dart';
 import 'package:flowtop/features/workspaces/presentation/pages/workspace_members_page.dart';
+import 'package:flowtop/features/workspaces/presentation/pages/my_invitations_page.dart';
 
 /// Application router using GoRouter.
 ///
-/// Redirect decisions are made synchronously via FirebaseAuth.instance.currentUser
-/// so the router reacts to sign-in / sign-out without circular Riverpod dependencies.
-/// The UI layer watches [authStateProvider] for reactive rebuilding.
+/// Redirect decisions are made synchronously from the Firebase Auth session so
+/// the router reacts to sign-in / sign-out without circular Riverpod
+/// dependencies. The router listens to auth changes and re-evaluates the
+/// current location whenever the session starts or ends (for example when a
+/// token is revoked), so users are never left on a screen that needs a session.
 class AppRouter {
   AppRouter._();
 
-  static final GoRouter router = GoRouter(
-    debugLogDiagnostics: false,
-    initialLocation: AppRoutes.splash,
-    redirect: (BuildContext context, GoRouterState state) {
-      final user = FirebaseAuth.instance.currentUser;
-      final location = state.matchedLocation;
+  static final _AuthRefreshNotifier _authRefresh =
+      _AuthRefreshNotifier(FirebaseAuth.instance.authStateChanges());
 
-      final authPages = {
-        AppRoutes.auth,
-        AppRoutes.signIn,
-        AppRoutes.signUp,
-        AppRoutes.resetPassword,
-      };
+  static final GoRouter router = createAppRouter(
+    isSignedIn: () => FirebaseAuth.instance.currentUser != null,
+    refreshListenable: _authRefresh,
+  );
+}
+
+/// Notifies the router whenever the Firebase Auth session changes.
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Stream<User?> authChanges) {
+    _subscription = authChanges.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<User?> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+/// The path of [route] relative to its [parent] route.
+///
+/// Sub-routes must be declared with relative paths, but [AppRoutes] holds the
+/// full paths so the URLs stay defined in one place.
+String _subPath(String parent, String route) {
+  assert(route.startsWith('$parent/'), '$route must live under $parent');
+  return route.substring(parent.length + 1);
+}
+
+/// Builds the application router.
+///
+/// [isSignedIn] is evaluated on every navigation. Provide a [refreshListenable]
+/// that notifies when its answer can change so the current location is checked
+/// again. Tests inject both to exercise the real route tree without Firebase.
+GoRouter createAppRouter({
+  required bool Function() isSignedIn,
+  Listenable? refreshListenable,
+  String initialLocation = AppRoutes.splash,
+}) {
+  const authPages = <String>{
+    AppRoutes.auth,
+    AppRoutes.signIn,
+    AppRoutes.signUp,
+    AppRoutes.resetPassword,
+  };
+
+  return GoRouter(
+    debugLogDiagnostics: false,
+    initialLocation: initialLocation,
+    refreshListenable: refreshListenable,
+    redirect: (BuildContext context, GoRouterState state) {
+      final signedIn = isSignedIn();
+      final location = state.matchedLocation;
       final isAuthPage = authPages.contains(location);
       final isSplash = location == AppRoutes.splash;
       final isOnboarding = location == AppRoutes.onboarding;
 
       // Signed out: send to sign-in (unless already on an auth page or splash).
-      if (user == null && !isAuthPage && !isSplash && !isOnboarding) {
+      if (!signedIn && !isAuthPage && !isSplash && !isOnboarding) {
         return AppRoutes.signIn;
       }
       // Signed in: leave onboarding/auth pages behind, go to dashboard.
-      if (user != null && (isAuthPage || isOnboarding)) {
+      if (signedIn && (isAuthPage || isOnboarding)) {
         return AppRoutes.dashboard;
       }
       return null;
@@ -96,78 +145,93 @@ class AppRouter {
         name: 'resetPassword',
         builder: (context, state) => const ResetPasswordPage(),
       ),
-      // Shell with bottom navigation for authenticated features.
+      // Shell with bottom navigation for authenticated features. The order of
+      // the branches must match [ScaffoldWithNavBar.destinations].
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainShell(navigationShell: navigationShell),
         branches: [
-          // Dashboard branch
+          // Home
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.dashboard,
                 name: 'dashboard',
                 builder: (context, state) => const DashboardPage(),
-              ),
-              GoRoute(
-                path: AppRoutes.notifications,
-                name: 'notifications',
-                builder: (context, state) => const NotificationsPage(),
+                routes: [
+                  GoRoute(
+                    path: _subPath(AppRoutes.dashboard, AppRoutes.notifications),
+                    name: 'notifications',
+                    builder: (context, state) => const NotificationsPage(),
+                  ),
+                  GoRoute(
+                    path: _subPath(AppRoutes.dashboard, AppRoutes.statistics),
+                    name: 'statistics',
+                    builder: (context, state) => const StatisticsPage(),
+                  ),
+                ],
               ),
             ],
           ),
-          // Tasks branch
+          // Tasks
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.taskList,
                 name: 'taskList',
                 builder: (context, state) => const TaskListPage(),
-              ),
-              GoRoute(
-                path: AppRoutes.taskCreate,
-                name: 'taskCreate',
-                builder: (context, state) => const TaskCreatePage(),
-              ),
-              GoRoute(
-                path: '${AppRoutes.taskDetail}/:taskId',
-                name: 'taskDetail',
-                builder: (context, state) => TaskDetailPage(
-                  taskId: state.pathParameters['taskId']!,
-                ),
-              ),
-              GoRoute(
-                path: '${AppRoutes.taskEdit}/:taskId',
-                name: 'taskEdit',
-                builder: (context, state) => TaskEditPage(
-                  taskId: state.pathParameters['taskId']!,
-                ),
+                routes: [
+                  GoRoute(
+                    path: _subPath(AppRoutes.taskList, AppRoutes.taskCreate),
+                    name: 'taskCreate',
+                    builder: (context, state) => const TaskCreatePage(),
+                  ),
+                  GoRoute(
+                    path:
+                        '${_subPath(AppRoutes.taskList, AppRoutes.taskDetail)}/:taskId',
+                    name: 'taskDetail',
+                    builder: (context, state) => TaskDetailPage(
+                      taskId: state.pathParameters['taskId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path:
+                        '${_subPath(AppRoutes.taskList, AppRoutes.taskEdit)}/:taskId',
+                    name: 'taskEdit',
+                    builder: (context, state) => TaskEditPage(
+                      taskId: state.pathParameters['taskId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          // Projects branch
+          // Projects
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.projects,
                 name: 'projects',
                 builder: (context, state) => const ProjectListPage(),
-              ),
-              GoRoute(
-                path: '${AppRoutes.projectDetail}/:projectId',
-                name: 'projectDetail',
-                builder: (context, state) => ProjectDetailPage(
-                  projectId: state.pathParameters['projectId']!,
-                ),
-              ),
-              GoRoute(
-                path: AppRoutes.projectCreate,
-                name: 'projectCreate',
-                builder: (context, state) => const ProjectCreatePage(),
+                routes: [
+                  GoRoute(
+                    path: _subPath(AppRoutes.projects, AppRoutes.projectCreate),
+                    name: 'projectCreate',
+                    builder: (context, state) => const ProjectCreatePage(),
+                  ),
+                  GoRoute(
+                    path:
+                        '${_subPath(AppRoutes.projects, AppRoutes.projectDetail)}/:projectId',
+                    name: 'projectDetail',
+                    builder: (context, state) => ProjectDetailPage(
+                      projectId: state.pathParameters['projectId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          // Calendar branch
+          // Calendar
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -177,59 +241,68 @@ class AppRouter {
               ),
             ],
           ),
-          // Workspaces branch
+          // Spaces
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.workspaces,
                 name: 'workspaces',
                 builder: (context, state) => const WorkspaceListPage(),
-              ),
-              GoRoute(
-                path: '${AppRoutes.workspaceDetail}/:workspaceId',
-                name: 'workspaceDetail',
-                builder: (context, state) => WorkspaceDetailPage(
-                  workspaceId: state.pathParameters['workspaceId']!,
-                ),
-              ),
-              GoRoute(
-                path: AppRoutes.workspaceCreate,
-                name: 'workspaceCreate',
-                builder: (context, state) => const WorkspaceCreatePage(),
-              ),
-              GoRoute(
-                path: '${AppRoutes.workspaceMembers}/:workspaceId',
-                name: 'workspaceMembers',
-                builder: (context, state) => WorkspaceMembersPage(
-                  workspaceId: state.pathParameters['workspaceId']!,
-                ),
-              ),
-              GoRoute(
-                path: '${AppRoutes.workspaceInvitations}/:workspaceId',
-                name: 'workspaceInvitations',
-                builder: (context, state) => WorkspaceInvitationsPage(
-                  workspaceId: state.pathParameters['workspaceId']!,
-                ),
+                routes: [
+                  GoRoute(
+                    path: _subPath(
+                        AppRoutes.workspaces, AppRoutes.workspaceCreate),
+                    name: 'workspaceCreate',
+                    builder: (context, state) => const WorkspaceCreatePage(),
+                  ),
+                  GoRoute(
+                    path:
+                        '${_subPath(AppRoutes.workspaces, AppRoutes.workspaceDetail)}/:workspaceId',
+                    name: 'workspaceDetail',
+                    builder: (context, state) => WorkspaceDetailPage(
+                      workspaceId: state.pathParameters['workspaceId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path:
+                        '${_subPath(AppRoutes.workspaces, AppRoutes.workspaceMembers)}/:workspaceId',
+                    name: 'workspaceMembers',
+                    builder: (context, state) => WorkspaceMembersPage(
+                      workspaceId: state.pathParameters['workspaceId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path:
+                        '${_subPath(AppRoutes.workspaces, AppRoutes.workspaceInvitations)}/:workspaceId',
+                    name: 'workspaceInvitations',
+                    builder: (context, state) => WorkspaceInvitationsPage(
+                      workspaceId: state.pathParameters['workspaceId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: _subPath(
+                        AppRoutes.workspaces, AppRoutes.myInvitations),
+                    name: 'myInvitations',
+                    builder: (context, state) => const MyInvitationsPage(),
+                  ),
+                ],
               ),
             ],
           ),
-          // Statistics branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppRoutes.statistics,
-                name: 'statistics',
-                builder: (context, state) => const StatisticsPage(),
-              ),
-            ],
-          ),
-          // Profile branch
+          // Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.profile,
                 name: 'profile',
                 builder: (context, state) => const ProfilePage(),
+                routes: [
+                  GoRoute(
+                    path: _subPath(AppRoutes.profile, AppRoutes.profileEdit),
+                    name: 'profileEdit',
+                    builder: (context, state) => const ProfileEditPage(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -240,24 +313,22 @@ class AppRouter {
 }
 
 /// Bottom navigation shell holding the authenticated feature branches.
-class MainShell extends ConsumerWidget {
+class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final index = navigationShell.currentIndex;
-
+  Widget build(BuildContext context) {
     return ScaffoldWithNavBar(
       navigationShell: navigationShell,
-      selectedIndex: index,
+      selectedIndex: navigationShell.currentIndex,
     );
   }
 }
 
 /// Scaffold with the premium bottom navigation bar.
-class ScaffoldWithNavBar extends ConsumerWidget {
+class ScaffoldWithNavBar extends StatelessWidget {
   const ScaffoldWithNavBar({
     super.key,
     required this.navigationShell,
@@ -267,22 +338,27 @@ class ScaffoldWithNavBar extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
   final int selectedIndex;
 
-  static const List<_NavItem> _items = [
-    _NavItem(AppRoutes.dashboard, Icons.dashboard_outlined, Icons.dashboard, 'Home'),
-    _NavItem(AppRoutes.taskList, Icons.task_outlined, Icons.task, AppStrings.tasks),
-    _NavItem(AppRoutes.projects, Icons.folder_outlined, Icons.folder, AppStrings.projects),
-    _NavItem(AppRoutes.calendar, Icons.calendar_today_outlined, Icons.calendar_today, AppStrings.calendar),
-    _NavItem(AppRoutes.workspaces, Icons.people_outlined, Icons.people, 'Spaces'),
-    _NavItem(AppRoutes.profile, Icons.person_outlined, Icons.person, 'You'),
+  /// One destination per shell branch, in branch order.
+  static const List<_NavItem> destinations = [
+    _NavItem(Icons.dashboard_outlined, Icons.dashboard, 'Home'),
+    _NavItem(Icons.task_outlined, Icons.task, AppStrings.tasks),
+    _NavItem(Icons.folder_outlined, Icons.folder, AppStrings.projects),
+    _NavItem(Icons.calendar_today_outlined, Icons.calendar_today, AppStrings.calendar),
+    _NavItem(Icons.people_outlined, Icons.people, 'Spaces'),
+    _NavItem(Icons.person_outlined, Icons.person, 'You'),
   ];
 
-  void _onTap(BuildContext context, int index) {
-    if (index == selectedIndex) return;
-    navigationShell.goBranch(index, initialLocation: index == 0);
+  void _onTap(int index) {
+    // Tapping the tab that is already open returns to the root of that tab.
+    navigationShell.goBranch(index, initialLocation: index == selectedIndex);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    assert(
+      navigationShell.route.branches.length == destinations.length,
+      'Every shell branch needs exactly one bottom navigation destination.',
+    );
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
@@ -300,8 +376,8 @@ class ScaffoldWithNavBar extends ConsumerWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: BottomNavigationBar(
             currentIndex: selectedIndex,
-            onTap: (i) => _onTap(context, i),
-            items: _items
+            onTap: _onTap,
+            items: destinations
                 .asMap()
                 .entries
                 .map(
@@ -340,8 +416,7 @@ class ScaffoldWithNavBar extends ConsumerWidget {
 }
 
 class _NavItem {
-  const _NavItem(this.route, this.icon, this.selectedIcon, this.label);
-  final String route;
+  const _NavItem(this.icon, this.selectedIcon, this.label);
   final IconData icon;
   final IconData selectedIcon;
   final String label;

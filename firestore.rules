@@ -16,6 +16,21 @@ service cloud.firestore {
       return request.auth.token.email;
     }
 
+    // True when the caller proved ownership of the email address in their token.
+    // Invitations are addressed to an email, so an unverified address (anyone
+    // can register with someone else's email) must never be able to claim one.
+    function hasVerifiedEmail() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+
+    // True when the invitation document at hand is addressed to the caller.
+    // Invitation emails are stored lower-cased by the createInvitation function.
+    function isInvitedEmail(invitedEmail) {
+      return hasVerifiedEmail() && request.auth.token.email.lower() == invitedEmail;
+    }
+
     // True if the requesting user is a member of the workspace.
     function isWorkspaceMember(workspaceId) {
       return isSignedIn() &&
@@ -110,6 +125,12 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == getUserId();
     }
 
+    // Invitees are not members yet, so they discover the invitations addressed
+    // to them with a collection-group query filtered on their own verified email.
+    match /{path=**}/invitations/{invitationId} {
+      allow list: if isInvitedEmail(resource.data.email);
+    }
+
     // ============ workspaces/{workspaceId}/members ============
     match /workspaces/{workspaceId}/members/{memberId} {
       allow read: if isWorkspaceMember(workspaceId);
@@ -143,9 +164,15 @@ service cloud.firestore {
             (resource.data.role != 'owner' && request.resource.data.role != 'owner'));
       // Owner/admin may remove members. Non-owners cannot remove owners.
       // A user cannot remove themselves if they are the owner (prevents orphan workspaces).
-      allow delete: if isWorkspaceOwnerOrAdmin(workspaceId)
-        && (getMemberRole(workspaceId) == 'owner' || resource.data.role != 'owner')
-        && (memberId != getUserId() || getMemberRole(workspaceId) != 'owner');
+      // Any other member may leave the workspace by removing their own record.
+      // The owner's record can only go away together with the workspace itself:
+      // the batch that deletes the workspace document also deletes it.
+      allow delete: if (memberId == getUserId() && resource.data.role != 'owner')
+        || (isWorkspaceOwnerOrAdmin(workspaceId)
+            && (getMemberRole(workspaceId) == 'owner' || resource.data.role != 'owner')
+            && (memberId != getUserId() || getMemberRole(workspaceId) != 'owner'))
+        || (isWorkspaceOwner(workspaceId)
+            && !existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)));
     }
 
     // ============ workspaces/{workspaceId}/invitations ============
@@ -158,7 +185,7 @@ service cloud.firestore {
             && request.resource.data.expiresAt > request.time)
         && (request.resource.data.role != 'owner' || getMemberRole(workspaceId) == 'owner');
       // Invited email accepts/declines:
-      //   - Must be the authenticated invited email (getUserEmail() == invitation.email).
+      //   - Must be the verified, authenticated invited email (see isInvitedEmail).
       //   - Invitation must still be pending and unexpired.
       //   - Only the status field may change (affectedKeys().hasOnly(['status'])).
       //   - New status must be 'accepted' or 'declined' and must differ from current.
@@ -166,8 +193,7 @@ service cloud.firestore {
       // Note: isWorkspaceMember() is NOT required for the invited-email path, because the
       // invited user is not yet a member when accepting.
       allow update: if (
-        (getUserEmail() != null
-          && getUserEmail() == resource.data.email
+        (isInvitedEmail(resource.data.email)
           && resource.data.status == 'pending'
           && resource.data.expiresAt > request.time
           && request.resource.data.status in ['accepted', 'declined']

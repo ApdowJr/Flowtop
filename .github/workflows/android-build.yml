@@ -22,10 +22,16 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # Pinned on purpose. The Gradle (8.14), Android Gradle Plugin (8.11) and
+      # Kotlin (2.2) versions of this project are the minimum that Flutter 3.47
+      # accepts. Flutter 3.50 raised them to Gradle 9.3.1, AGP 9.1.1 and Kotlin
+      # 2.4.10, so following the moving 'stable' channel broke the APK build.
+      # Move this pin together with the Android toolchain (see ANDROID_BUILD.md).
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Set up Gradle
@@ -66,6 +72,7 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      # Every analyzer finding, including infos, fails the build.
       - name: Analyze
         run: |
           set +e
@@ -73,32 +80,48 @@ jobs:
           status=$?
           cat /tmp/flowtop-analysis.txt
           if [ "$status" -ne 0 ]; then
-            while IFS= read -r line; do
-              if [[ "$line" == *' • '* ]]; then
-                echo "::error::$line"
-              fi
-            done < /tmp/flowtop-analysis.txt
+            python3 scripts/ci_annotate.py /tmp/flowtop-analysis.txt --title "flutter analyze" --grep ' • '
           fi
           exit "$status"
 
       - name: Test authentication, dashboard and workspace UI
         run: |
           set +e
-          flutter test --reporter expanded test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart test/widget/auth_flow_ui_test.dart test/unit/auth_provider_test.dart test/widget/calendar_statistics_test.dart test/unit/task_provider_test.dart test/unit/project_provider_test.dart test/widget/theme_persistence_test.dart > /tmp/flowtop-tests.txt 2>&1
+          flutter test --reporter expanded test/widget/dashboard_ui_test.dart test/widget/workspace_ui_test.dart test/widget/auth_flow_ui_test.dart test/unit/auth_provider_test.dart test/widget/calendar_statistics_test.dart test/unit/task_provider_test.dart test/unit/project_provider_test.dart test/widget/theme_persistence_test.dart test/widget/app_router_test.dart > /tmp/flowtop-tests.txt 2>&1
           status=$?
           cat /tmp/flowtop-tests.txt
           if [ "$status" -ne 0 ]; then
-            python3 - <<'PYCODE'
-          from pathlib import Path
-          text = Path('/tmp/flowtop-tests.txt').read_text(errors='replace')[-12000:]
-          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print('::error::' + text)
-          PYCODE
+            python3 scripts/ci_annotate.py /tmp/flowtop-tests.txt --title "required tests: failed" --grep '\[E\]|Some tests failed' --maxline 220
+            python3 scripts/ci_annotate.py /tmp/flowtop-tests.txt --title "required tests: first errors" --grep '\[E\]' --after 10 --maxline 200 --keep first
+          fi
+          exit "$status"
+
+      # Runs every unit and widget test so that tests which are not part of the
+      # required list above cannot silently rot. Failures are reported as
+      # warnings and do not block the build.
+      - name: Run all unit and widget tests (informational)
+        continue-on-error: true
+        run: |
+          set +e
+          flutter test --reporter expanded test/unit test/widget > /tmp/flowtop-all-tests.txt 2>&1
+          status=$?
+          tail -n 150 /tmp/flowtop-all-tests.txt
+          if [ "$status" -ne 0 ]; then
+            python3 scripts/ci_annotate.py /tmp/flowtop-all-tests.txt --level warning --title "failing tests: list" --grep '\[E\]|Some tests failed' --maxline 220
+            python3 scripts/ci_annotate.py /tmp/flowtop-all-tests.txt --level warning --title "failing tests: first errors" --grep '\[E\]' --after 10 --maxline 200 --keep first
           fi
           exit "$status"
 
       - name: Build debug APK
-        run: flutter build apk --debug
+        run: |
+          set +e
+          flutter build apk --debug > /tmp/flowtop-build.txt 2>&1
+          status=$?
+          cat /tmp/flowtop-build.txt
+          if [ "$status" -ne 0 ]; then
+            python3 scripts/ci_annotate.py /tmp/flowtop-build.txt --title "flutter build apk"
+          fi
+          exit "$status"
 
       # Export the exact certificate fingerprints used by this CI debug APK.
       - name: Export debug signing fingerprints

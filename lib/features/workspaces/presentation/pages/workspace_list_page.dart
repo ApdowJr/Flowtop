@@ -15,8 +15,24 @@ class WorkspaceListPage extends ConsumerWidget {
     final userId = ref.watch(currentUserProvider)?.uid;
     final selected = ref.watch(selectedWorkspaceProvider);
     final theme = Theme.of(context);
+    final pendingInvitations = ref.watch(openInvitationsProvider).length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Workspaces')),
+      appBar: AppBar(
+        title: const Text('Workspaces'),
+        actions: [
+          IconButton(
+            tooltip: pendingInvitations == 0
+                ? 'Invitations'
+                : 'Invitations ($pendingInvitations waiting)',
+            onPressed: () => context.go(AppRoutes.myInvitations),
+            icon: Badge(
+              isLabelVisible: pendingInvitations > 0,
+              label: Text('$pendingInvitations'),
+              child: const Icon(Icons.mail_outline_rounded),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go(AppRoutes.workspaceCreate),
         icon: const Icon(Icons.add_rounded), label: const Text('New workspace'),
@@ -28,7 +44,7 @@ class WorkspaceListPage extends ConsumerWidget {
               error: (_, __) => AppErrorState(message: 'Could not load your workspaces. Please try again.', onRetry: () => ref.invalidate(workspaceListProvider(userId))),
               data: (workspaces) {
                 if (workspaces.isEmpty) {
-                  return AppEmptyState(title: 'A space to call yours', subtitle: 'Create a workspace to start organizing your tasks and projects.', icon: Icons.workspaces_outlined,
+                  return AppEmptyState(title: 'A space to call yours', subtitle: 'Create a workspace to start organizing your tasks and projects, or accept an invitation to join one.', icon: Icons.workspaces_outlined,
                       action: () => context.go(AppRoutes.workspaceCreate), actionLabel: 'Create workspace');
                 }
                 return ListView(

@@ -35,6 +35,14 @@ class AppColors {
   static const Color shadow = Color(0x1A000000);
 }
 
+/// Keys of the values stored in SharedPreferences.
+class AppPrefs {
+  AppPrefs._();
+
+  static const String themeMode = 'theme_mode';
+  static const String onboardingSeen = 'onboarding_seen';
+}
+
 /// App strings (English UI copy).
 class AppStrings {
   AppStrings._();
@@ -86,6 +94,8 @@ class AppStrings {
   static const String onboardingTitle3 = 'Never miss a deadline';
   static const String onboardingBody3 = 'Set due dates, reminders, and track progress across your calendar.';
   static const String getStarted = 'Get started';
+  static const String skip = 'Skip';
+  static const String next = 'Next';
 
   // Dashboard
   static const String dashboard = 'Dashboard';
@@ -182,6 +192,11 @@ class AppStrings {
 }
 
 /// App routes.
+///
+/// Detail, create and edit pages live *under* the route of the tab they belong
+/// to (for example `/tasks/detail/:taskId` under `/tasks`). The router nests
+/// them so that they stack on top of the tab's root page and show a back
+/// button, while the paths below stay the single source of truth.
 class AppRoutes {
   AppRoutes._();
 
@@ -191,25 +206,38 @@ class AppRoutes {
   static const String signIn = '/sign-in';
   static const String signUp = '/sign-up';
   static const String resetPassword = '/reset-password';
-  static const String home = '/home';
+
+  // Home tab
   static const String dashboard = '/dashboard';
+  static const String notifications = '/dashboard/notifications';
+  static const String statistics = '/dashboard/statistics';
+
+  // Tasks tab
   static const String taskList = '/tasks';
-  static const String taskDetail = '/task-detail';
-  static const String taskCreate = '/task-create';
-  static const String taskEdit = '/task-edit';
+  static const String taskCreate = '/tasks/create';
+  static const String taskDetail = '/tasks/detail';
+  static const String taskEdit = '/tasks/edit';
+
+  // Projects tab
   static const String projects = '/projects';
-  static const String projectDetail = '/project-detail';
-  static const String projectCreate = '/project-create';
+  static const String projectCreate = '/projects/create';
+  static const String projectDetail = '/projects/detail';
+  static const String projectEdit = '/projects/edit';
+
+  // Calendar tab
   static const String calendar = '/calendar';
+
+  // Spaces tab
   static const String workspaces = '/workspaces';
-  static const String workspaceDetail = '/workspace-detail';
-  static const String workspaceCreate = '/workspace-create';
-  static const String workspaceMembers = '/workspace-members';
-  static const String workspaceInvitations = '/workspace-invitations';
-  static const String statistics = '/statistics';
-  static const String notifications = '/notifications';
+  static const String workspaceCreate = '/workspaces/create';
+  static const String workspaceDetail = '/workspaces/detail';
+  static const String workspaceMembers = '/workspaces/members';
+  static const String workspaceInvitations = '/workspaces/invitations';
+  static const String myInvitations = '/workspaces/my-invitations';
+
+  // Profile tab
   static const String profile = '/profile';
-  static const String settings = '/settings';
+  static const String profileEdit = '/profile/edit';
 
   static bool isAuth(String path) =>
       path == signIn || path == signUp || path == resetPassword || path == auth;

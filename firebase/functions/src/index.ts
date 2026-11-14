@@ -14,4 +14,4 @@ export {
   cleanExpiredInvitations,
 } from './invitations';
 export { sendTaskReminderNotifications as sendReminders } from './reminders';
-export { deliverNotification } from './notifications';
+export { deliverNotification, notifyTaskAssignment } from './notifications';
