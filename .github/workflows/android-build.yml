@@ -22,10 +22,16 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # Pinned on purpose. The Gradle (8.14), Android Gradle Plugin (8.11) and
+      # Kotlin (2.2) versions of this project are the minimum that Flutter 3.47
+      # accepts. Flutter 3.50 raised them to Gradle 9.3.1, AGP 9.1.1 and Kotlin
+      # 2.4.10, so following the moving 'stable' channel broke the APK build.
+      # Move this pin together with the Android toolchain (see ANDROID_BUILD.md).
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Set up Gradle
@@ -66,29 +72,16 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      # Warnings and errors fail the build. Info-level hints (for example the
-      # deprecation of package:flutter/material.dart in favour of
-      # package:material_ui) are reported as a single warning annotation so they
-      # stay visible without blocking unrelated work.
+      # Every analyzer finding, including infos, fails the build.
       - name: Analyze
         run: |
           set +e
-          flutter analyze --no-fatal-infos > /tmp/flowtop-analysis.txt 2>&1
+          flutter analyze > /tmp/flowtop-analysis.txt 2>&1
           status=$?
           cat /tmp/flowtop-analysis.txt
-          python3 - <<'PYCODE'
-          from pathlib import Path
-          raw = Path('/tmp/flowtop-analysis.txt').read_text(errors='replace')
-          lines = [l.strip() for l in raw.splitlines() if ' • ' in l]
-          def esc(text):
-              return text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          serious = [l for l in lines if not l.startswith('info •')]
-          infos = [l for l in lines if l.startswith('info •')]
-          if serious:
-              print('::error title=flutter analyze::' + esc('\n'.join(serious)[-30000:]))
-          if infos:
-              print('::warning title=flutter analyze infos::' + esc('\n'.join(infos)[-30000:]))
-          PYCODE
+          if [ "$status" -ne 0 ]; then
+            python3 scripts/ci_annotate.py /tmp/flowtop-analysis.txt --title "flutter analyze" --grep ' • '
+          fi
           exit "$status"
 
       - name: Test authentication, dashboard and workspace UI
@@ -98,12 +91,8 @@ jobs:
           status=$?
           cat /tmp/flowtop-tests.txt
           if [ "$status" -ne 0 ]; then
-            python3 - <<'PYCODE'
-          from pathlib import Path
-          text = Path('/tmp/flowtop-tests.txt').read_text(errors='replace')[-12000:]
-          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print('::error::' + text)
-          PYCODE
+            python3 scripts/ci_annotate.py /tmp/flowtop-tests.txt --title "required tests" --grep '\[E\]' --after 14
+            python3 scripts/ci_annotate.py /tmp/flowtop-tests.txt --title "required tests output" --tail 8000
           fi
           exit "$status"
 
@@ -118,12 +107,7 @@ jobs:
           status=$?
           tail -n 150 /tmp/flowtop-all-tests.txt
           if [ "$status" -ne 0 ]; then
-            python3 - <<'PYCODE'
-          from pathlib import Path
-          text = Path('/tmp/flowtop-all-tests.txt').read_text(errors='replace')[-12000:]
-          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print('::warning::' + text)
-          PYCODE
+            python3 scripts/ci_annotate.py /tmp/flowtop-all-tests.txt --level warning --title "failing tests" --grep '\[E\]' --after 14
           fi
           exit "$status"
 
@@ -134,12 +118,7 @@ jobs:
           status=$?
           cat /tmp/flowtop-build.txt
           if [ "$status" -ne 0 ]; then
-            python3 - <<'PYCODE'
-          from pathlib import Path
-          text = Path('/tmp/flowtop-build.txt').read_text(errors='replace')[-12000:]
-          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print('::error title=flutter build apk::' + text)
-          PYCODE
+            python3 scripts/ci_annotate.py /tmp/flowtop-build.txt --title "flutter build apk"
           fi
           exit "$status"
 
