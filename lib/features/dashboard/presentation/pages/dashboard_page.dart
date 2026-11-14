@@ -152,7 +152,10 @@ class _Overview extends StatelessWidget {
           Container(width: 68, height: 68, decoration: BoxDecoration(shape: BoxShape.circle, color: theme.colorScheme.primary.withValues(alpha: .13)), child: Icon(Icons.bolt_rounded, color: theme.colorScheme.primary, size: 40)),
         ]),
       ),
-      const SizedBox(height: 12),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton(onPressed: () => context.go(AppRoutes.statistics), child: const Text('Statistics  ›')),
+      ),
       Material(
         color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(22),
         child: InkWell(
