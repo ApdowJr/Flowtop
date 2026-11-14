@@ -1,71 +1,62 @@
 {
   "indexes": [
     {
-      "collectionGroup": "tasks",
+      "collectionGroup": "members",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "field": "workspaceId", "order": "ASCENDING" },
-        { "field": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tasks",
-      "fields": [
-        { "field": "workspaceId", "order": "ASCENDING" },
-        { "field": "projectId", "order": "ASCENDING" },
-        { "field": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tasks",
-      "fields": [
-        { "field": "workspaceId", "order": "ASCENDING" },
-        { "field": "assigneeId", "order": "ASCENDING" },
-        { "field": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tasks",
-      "fields": [
-        { "field": "workspaceId", "order": "ASCENDING" },
-        { "field": "status", "order": "ASCENDING" },
-        { "field": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tasks",
-      "fields": [
-        { "field": "workspaceId", "order": "ASCENDING" },
-        { "field": "dueDate", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tasks",
-      "fields": [
-        { "field": "status", "order": "ASCENDING" },
-        { "field": "dueDate", "order": "ASCENDING" }
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "role", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "invitations",
+      "queryScope": "COLLECTION",
       "fields": [
-        { "field": "expiresAt", "order": "ASCENDING" },
-        { "field": "status", "order": "ASCENDING" }
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "members",
+      "fieldPath": "userId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     },
     {
-      "collectionGroup": "members",
-      "fields": [
-        { "field": "userId", "order": "ASCENDING" },
-        { "field": "role", "order": "ASCENDING" }
+      "collectionGroup": "invitations",
+      "fieldPath": "email",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     },
     {
       "collectionGroup": "fcm_tokens",
-      "fields": [
-        { "field": "email", "order": "ASCENDING" },
-        { "field": "isActive", "order": "ASCENDING" }
+      "fieldPath": "email",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "fieldPath": "dueDate",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     }
-  ],
-  "fieldOverrides": []
+  ]
 }
