@@ -7,7 +7,7 @@ keep the interesting lines of long Flutter output visible.
 
 Usage:
   ci_annotate.py LOG --level error --title "flutter analyze" --grep ' • '
-  ci_annotate.py LOG --level warning --grep '\\[E\\]' --after 12
+  ci_annotate.py LOG --level warning --grep '\\[E\\]' --after 12 --keep first
 """
 import argparse
 import re
@@ -23,7 +23,7 @@ def select_lines(lines, pattern, after):
     selected = []
     previous = None
     for index in sorted(keep):
-        if previous is not None and index != previous + 1:
+        if after and previous is not None and index != previous + 1:
             selected.append('---')
         selected.append(lines[index])
         previous = index
@@ -36,8 +36,13 @@ def main():
     parser.add_argument('--level', default='error',
                         choices=['error', 'warning', 'notice'])
     parser.add_argument('--title', default='')
-    parser.add_argument('--tail', type=int, default=12000,
-                        help='maximum number of characters kept from the end')
+    parser.add_argument('--tail', type=int, default=3900,
+                        help='maximum number of characters kept (GitHub shows '
+                             'roughly the first 4000 characters of a message)')
+    parser.add_argument('--keep', default='last', choices=['first', 'last'],
+                        help='which end of an over-long message is kept')
+    parser.add_argument('--maxline', type=int, default=0,
+                        help='truncate every line to this many characters')
     parser.add_argument('--grep', default=None,
                         help='keep only lines matching this regular expression')
     parser.add_argument('--after', type=int, default=0,
@@ -47,7 +52,10 @@ def main():
     lines = Path(args.file).read_text(errors='replace').splitlines()
     if args.grep:
         lines = select_lines(lines, re.compile(args.grep), args.after)
-    text = '\n'.join(lines)[-args.tail:]
+    if args.maxline:
+        lines = [line[:args.maxline] for line in lines]
+    text = '\n'.join(lines)
+    text = text[:args.tail] if args.keep == 'first' else text[-args.tail:]
     if not text.strip():
         return
 

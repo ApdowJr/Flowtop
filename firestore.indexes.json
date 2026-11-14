@@ -4,16 +4,28 @@
       "collectionGroup": "members",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "role", "order": "ASCENDING" }
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "role",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "invitations",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "expiresAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
@@ -22,40 +34,66 @@
       "collectionGroup": "members",
       "fieldPath": "userId",
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" },
-        { "order": "DESCENDING", "queryScope": "COLLECTION" },
-        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     },
     {
       "collectionGroup": "invitations",
       "fieldPath": "email",
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" },
-        { "order": "DESCENDING", "queryScope": "COLLECTION" },
-        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
-      ]
-    },
-    {
-      "collectionGroup": "fcm_tokens",
-      "fieldPath": "email",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" },
-        { "order": "DESCENDING", "queryScope": "COLLECTION" },
-        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     },
     {
       "collectionGroup": "tasks",
       "fieldPath": "dueDate",
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" },
-        { "order": "DESCENDING", "queryScope": "COLLECTION" },
-        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     }
   ]

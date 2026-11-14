@@ -1,19 +1,19 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
-import 'package:flowtop/core/widgets/app_loading.dart';
-import 'package:flowtop/core/widgets/app_empty_state.dart';
+import 'package:flowtop/core/di/injection_container.dart';
+import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:flowtop/core/widgets/app_error_state.dart';
+import 'package:flowtop/core/widgets/app_loading.dart';
+import 'package:flowtop/core/widgets/app_text_field.dart';
+import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
+import 'package:flowtop/features/workspaces/domain/entities/workspace_invitation_entity.dart';
 
-/// Pending invitations for a workspace.
+/// Invite people to a workspace and follow the invitations that were sent.
 ///
-/// Lists invitations the current user can accept/decline, and allows
-/// workspace members with invite rights to send new invitations.
+/// Owners, admins and managers can send and withdraw invitations. Every other
+/// member can only see them.
 class WorkspaceInvitationsPage extends ConsumerStatefulWidget {
   final String workspaceId;
 
@@ -26,181 +26,264 @@ class WorkspaceInvitationsPage extends ConsumerStatefulWidget {
 
 class _WorkspaceInvitationsPageState
     extends ConsumerState<WorkspaceInvitationsPage> {
-  final _functions = FirebaseFunctions.instance;
-  final _auth = FirebaseAuth.instance;
+  /// People can be invited with any role except owner.
+  static const List<WorkspaceRole> _invitableRoles = [
+    WorkspaceRole.admin,
+    WorkspaceRole.manager,
+    WorkspaceRole.member,
+    WorkspaceRole.viewer,
+  ];
 
-  List<Map<String, dynamic>> _invitations = [];
-  bool _loading = true;
-  String? _error;
-  String? _currentUserEmail;
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+  final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
+  WorkspaceRole _role = WorkspaceRole.member;
+  bool _sending = false;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void dispose() {
+    _email.dispose();
+    super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _send() async {
+    if (_sending || !_formKey.currentState!.validate()) return;
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+    setState(() => _sending = true);
     try {
-      _currentUserEmail = _auth.currentUser?.email;
-
-      // Fetch pending invitations for this workspace where the email matches
-      // the current user (invitations the user can accept/decline).
-      final snap = await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('invitations')
-          .where('status', isEqualTo: 'pending')
-          .get();
-
-      final now = DateTime.now();
-      _invitations = snap.docs
-          .map((doc) => doc.data())
-          .where((data) {
-            final expiresAt = data['expiresAt'];
-            if (expiresAt == null) return false;
-            final exp = expiresAt is Timestamp
-                ? expiresAt.toDate()
-                : DateTime.tryParse(expiresAt.toString());
-            if (exp == null) return false;
-            return exp.isAfter(now);
-          })
-          .toList();
-    } catch (e) {
-      setState(() => _error = e.toString());
+      await ref.read(workspaceRepositoryProvider).inviteMember(
+            widget.workspaceId,
+            _email.text.trim(),
+            _role,
+            invitedBy: user.uid,
+          );
+      if (!mounted) return;
+      _email.clear();
+      _showMessage('Invitation sent');
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      final message = error.message;
+      _showMessage(message != null && message.isNotEmpty
+          ? message
+          : 'Could not send the invitation. Please try again.');
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Could not send the invitation. Please try again.');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _sending = false);
     }
   }
 
-  Future<void> _respond(String invitationId, String status) async {
-    setState(() => _loading = true);
+  Future<void> _revoke(WorkspaceInvitationEntity invitation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw invitation?'),
+        content: Text('${invitation.email} will no longer be able to join with this invitation.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Withdraw'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     try {
-      await _functions.httpsCallable('acceptInvitation').call({
-        'workspaceId': widget.workspaceId,
-        'invitationId': invitationId,
-      });
-      // The callable updates status server-side. Refresh to reflect change.
-      await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              status == 'accepted'
-                  ? AppStrings.accepted
-                  : AppStrings.declined,
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } on FirebaseFunctionsException catch (e) {
-      setState(() => _error = e.message);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed: ${e.message}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      await ref
+          .read(workspaceRepositoryProvider)
+          .revokeInvitation(widget.workspaceId, invitation.id);
+      if (!mounted) return;
+      _showMessage('Invitation withdrawn');
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Could not withdraw the invitation. Please try again.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final role = ref.watch(myWorkspaceRoleProvider(widget.workspaceId));
+    final canInvite = role?.canInvite ?? false;
+    final invitations = ref.watch(workspaceInvitationsProvider(widget.workspaceId));
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(AppStrings.invitations),
-      ),
-      body: _loading
-          ? const AppPageLoading(message: AppStrings.loading)
-          : _error != null
-              ? AppErrorState(
-                  message: _error!,
-                  onRetry: _load,
-                )
-              : _invitations.isEmpty
-                  ? AppEmptyState(
-                      title: _currentUserEmail == null
-                          ? 'Sign in to view invitations'
-                          : 'No pending invitations',
-                      subtitle: _currentUserEmail == null
-                          ? 'Please sign in to see your workspace invitations.'
-                          : 'There are no pending invitations for ${
-                              _currentUserEmail
-                            } in this workspace.',
-                      icon: Icons.email_outlined,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _invitations.length,
-                      itemBuilder: (context, index) {
-                        final inv = _invitations[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  AppColors.primary.withValues(alpha: 0.1),
-                              child: const Icon(Icons.email,
-                                  color: AppColors.primary),
-                            ),
-                            title: Text(
-                              inv['email'] ?? 'Unknown email',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Role: ${inv['role'] ?? 'member'}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Invited by ${inv['invitedBy'] ?? 'unknown'}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () => _respond(
-                                      inv['invitationId'], 'accepted'),
-                                  child: const Text(AppStrings.accepted),
-                                ),
-                                TextButton(
-                                  onPressed: () => _respond(
-                                      inv['invitationId'], 'declined'),
-                                  child: const Text(AppStrings.declined),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+      appBar: AppBar(title: const Text('Invite people')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: [
+          if (canInvite)
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Add someone to this workspace',
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'They get the invitation under Spaces once they have verified their email.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 18),
+                  AppTextField(
+                    label: 'Email address',
+                    hint: 'name@example.com',
+                    icon: Icons.mail_outline_rounded,
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.done,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) return 'Enter an email address';
+                      if (!_emailPattern.hasMatch(text)) return 'Enter a valid email address';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Role', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final option in _invitableRoles)
+                        ChoiceChip(
+                          label: Text(option.label),
+                          selected: _role == option,
+                          onSelected: (_) => setState(() => _role = option),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  AppButton(
+                    text: 'Send invitation',
+                    loading: _sending,
+                    onPressed: _send,
+                  ),
+                ],
+              ),
+            )
+          else if (role != null)
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(Icons.lock_outline_rounded),
+                title: const Text('Only owners, admins and managers can invite people'),
+                subtitle: Text('You are a ${role.label.toLowerCase()} of this workspace.'),
+              ),
+            ),
+          const SizedBox(height: 28),
+          Text(
+            'SENT INVITATIONS',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          invitations.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: AppLoading(message: AppStrings.loading),
+            ),
+            error: (_, __) => AppErrorState(
+              message: 'Could not load the invitations. Please try again.',
+              onRetry: () => ref.invalidate(workspaceInvitationsProvider(widget.workspaceId)),
+            ),
+            data: (list) {
+              if (list.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    'No invitations yet.',
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+              final now = DateTime.now();
+              return Column(
+                children: [
+                  for (final invitation in list)
+                    _SentInvitationTile(
+                      invitation: invitation,
+                      now: now,
+                      onRevoke: canInvite && invitation.isOpenAt(now)
+                          ? () => _revoke(invitation)
+                          : null,
                     ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SentInvitationTile extends StatelessWidget {
+  const _SentInvitationTile({
+    required this.invitation,
+    required this.now,
+    required this.onRevoke,
+  });
+
+  final WorkspaceInvitationEntity invitation;
+  final DateTime now;
+  final VoidCallback? onRevoke;
+
+  String get _statusLabel {
+    switch (invitation.status) {
+      case InvitationStatus.accepted:
+        return 'Accepted';
+      case InvitationStatus.declined:
+        return 'Declined';
+      case InvitationStatus.pending:
+        return invitation.isExpiredAt(now) ? 'Expired' : 'Pending';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: .12),
+          child: Icon(Icons.mail_outline_rounded, color: theme.colorScheme.primary),
+        ),
+        title: Text(
+          invitation.email,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text('${invitation.role.label} • $_statusLabel'),
+        trailing: onRevoke == null
+            ? null
+            : IconButton(
+                tooltip: 'Withdraw invitation',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: onRevoke,
+              ),
+      ),
     );
   }
 }

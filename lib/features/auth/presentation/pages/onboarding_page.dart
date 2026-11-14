@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flowtop/core/constants/app_constants.dart';
+import 'package:flowtop/core/di/injection_container.dart';
 import 'package:flowtop/core/widgets/app_button.dart';
 import 'package:go_router/go_router.dart';
 
-/// Onboarding walkthrough (3 premium purple slides).
-class OnboardingPage extends StatefulWidget {
+/// Onboarding walkthrough, shown once on the first launch.
+class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
 
   @override
-  State<OnboardingPage> createState() => _OnboardingPageState();
+  ConsumerState<OnboardingPage> createState() => _OnboardingPageState();
 }
 
-class _OnboardingPageState extends State<OnboardingPage> {
+class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int _page = 0;
   final _controller = PageController(initialPage: 0);
 
@@ -37,6 +39,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Remembers that the walkthrough was seen, then continues to sign-in.
+  Future<void> _finish() async {
+    await ref.read(preferencesProvider)?.setBool(AppPrefs.onboardingSeen, true);
+    if (!mounted) return;
+    context.go(AppRoutes.signIn);
   }
 
   @override
@@ -112,21 +121,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
             child: isLast
-                ? AppButton(text: AppStrings.getStarted, onPressed: () {
-                    context.go(AppRoutes.signIn);
-                  })
+                ? AppButton(text: AppStrings.getStarted, onPressed: _finish)
                 : Row(
                     children: [
                       Expanded(
                         child: AppOutlinedButton(
-                          text: AppStrings.cancel,
-                          onPressed: () => _controller.jumpToPage(_slides.length - 1),
+                          text: AppStrings.skip,
+                          onPressed: _finish,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: AppButton(
-                          text: AppStrings.getStarted,
+                          text: AppStrings.next,
                           onPressed: () => _controller.nextPage(
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.ease,

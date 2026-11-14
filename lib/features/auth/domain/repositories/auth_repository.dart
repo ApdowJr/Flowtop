@@ -34,4 +34,12 @@ abstract class AuthRepository {
 
   /// Update the current user's profile (display name / photo URL).
   Future<void> updateProfile({String? displayName, String? photoUrl});
+
+  /// Send an email-verification message to the current user.
+  Future<void> sendEmailVerification();
+
+  /// Reload the current user from the server and refresh their ID token, so a
+  /// freshly verified email address is reflected in [currentUser] and in the
+  /// token that security rules and Cloud Functions see.
+  Future<void> reloadUser();
 }

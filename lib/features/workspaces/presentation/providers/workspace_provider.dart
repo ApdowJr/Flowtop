@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flowtop/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flowtop/features/workspaces/data/repositories/workspace_repository_impl.dart';
 import 'package:flowtop/features/workspaces/domain/entities/workspace_entity.dart';
+import 'package:flowtop/features/workspaces/domain/entities/workspace_invitation_entity.dart';
 import 'package:flowtop/features/workspaces/domain/repositories/workspace_repository.dart';
 
 /// Workspace repository provider — wired to the real Firestore implementation.
@@ -44,10 +46,18 @@ class WorkspaceListNotifier extends StateNotifier<AsyncValue<List<WorkspaceEntit
     );
   }
 
-  Future<void> createWorkspace(WorkspaceEntity workspace) async {
+  Future<void> createWorkspace(
+    WorkspaceEntity workspace, {
+    String? ownerEmail,
+    String? ownerName,
+  }) async {
     state = const AsyncValue.loading();
     try {
-      final id = await _repository.createWorkspace(workspace);
+      final id = await _repository.createWorkspace(
+        workspace,
+        ownerEmail: ownerEmail,
+        ownerName: ownerName,
+      );
       state = AsyncValue.data([
         ...(state.valueOrNull ?? []),
         workspace.copyWith(id: id),
@@ -57,30 +67,31 @@ class WorkspaceListNotifier extends StateNotifier<AsyncValue<List<WorkspaceEntit
     }
   }
 
+  /// Saves the editable fields of a workspace and shows the result right away.
+  /// The workspace list only refreshes when memberships change, so the local
+  /// state is updated here too. Failures are rethrown for the caller to report.
   Future<void> updateWorkspace(String workspaceId, WorkspaceEntity workspace) async {
-    state = const AsyncValue.loading();
-    try {
-      await _repository.updateWorkspace(workspaceId, workspace);
-      state = AsyncValue.data([
-        for (final w in state.valueOrNull ?? [])
-          if (w.id == workspaceId) workspace.copyWith(id: workspaceId) else w,
-      ]);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    await _repository.updateWorkspace(workspaceId, workspace);
+    state = AsyncValue.data([
+      for (final w in state.valueOrNull ?? const <WorkspaceEntity>[])
+        if (w.id == workspaceId)
+          w.copyWith(
+            name: workspace.name,
+            description: workspace.description,
+            color: workspace.color,
+          )
+        else
+          w,
+    ]);
   }
 
+  /// Deletes a workspace with everything in it. Failures are rethrown.
   Future<void> deleteWorkspace(String workspaceId) async {
-    state = const AsyncValue.loading();
-    try {
-      await _repository.deleteWorkspace(workspaceId);
-      state = AsyncValue.data([
-        for (final w in state.valueOrNull ?? [])
-          if (w.id != workspaceId) w,
-      ]);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    await _repository.deleteWorkspace(workspaceId);
+    state = AsyncValue.data([
+      for (final w in state.valueOrNull ?? const <WorkspaceEntity>[])
+        if (w.id != workspaceId) w,
+    ]);
   }
 
   @override
@@ -121,22 +132,16 @@ class WorkspaceMembersNotifier extends StateNotifier<AsyncValue<List<WorkspaceMe
     );
   }
 
-  Future<void> changeRole(String userId, WorkspaceRole role) async {
-    state = const AsyncValue.loading();
-    try {
-      await _repository.changeMemberRole(_workspaceId, userId, role);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+  /// Changes the role of a member. The list updates through the members stream.
+  /// Failures are rethrown so the caller can tell the user.
+  Future<void> changeRole(String userId, WorkspaceRole role) {
+    return _repository.changeMemberRole(_workspaceId, userId, role);
   }
 
-  Future<void> removeMember(String userId) async {
-    state = const AsyncValue.loading();
-    try {
-      await _repository.removeMember(_workspaceId, userId);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+  /// Removes a member (or lets the signed-in user leave). The list updates
+  /// through the members stream. Failures are rethrown.
+  Future<void> removeMember(String userId) {
+    return _repository.removeMember(_workspaceId, userId);
   }
 
   @override
@@ -154,3 +159,46 @@ final workspaceMembersProvider = StateNotifierProvider.family<
     return WorkspaceMembersNotifier(repository, workspaceId);
   },
 );
+
+/// Invitations addressed to the signed-in user, in every workspace.
+///
+/// Only users with a verified email may read them (see firestore.rules), so
+/// everybody else gets an empty list instead of a permission error.
+final myInvitationsProvider =
+    StreamProvider.autoDispose<List<WorkspaceInvitationEntity>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  final email = user?.email;
+  if (user == null || email == null || email.isEmpty || !user.emailVerified) {
+    return Stream.value(const <WorkspaceInvitationEntity>[]);
+  }
+  return ref.watch(workspaceRepositoryProvider).watchInvitationsForEmail(email);
+});
+
+/// The invitations the signed-in user can still accept or decline.
+final openInvitationsProvider =
+    Provider.autoDispose<List<WorkspaceInvitationEntity>>((ref) {
+  final now = DateTime.now();
+  final invitations = ref.watch(myInvitationsProvider).valueOrNull ?? const [];
+  return [
+    for (final invitation in invitations)
+      if (invitation.isOpenAt(now)) invitation,
+  ];
+});
+
+/// Every invitation sent from a workspace (pending, accepted and declined).
+final workspaceInvitationsProvider = StreamProvider.autoDispose
+    .family<List<WorkspaceInvitationEntity>, String>((ref, workspaceId) {
+  return ref.watch(workspaceRepositoryProvider).watchWorkspaceInvitations(workspaceId);
+});
+
+/// The signed-in user's role in a workspace, or null while it is unknown.
+final myWorkspaceRoleProvider =
+    Provider.autoDispose.family<WorkspaceRole?, String>((ref, workspaceId) {
+  final uid = ref.watch(currentUserProvider)?.uid;
+  final members = ref.watch(workspaceMembersProvider(workspaceId)).valueOrNull;
+  if (uid == null || members == null) return null;
+  for (final member in members) {
+    if (member.userId == uid) return member.role;
+  }
+  return null;
+});

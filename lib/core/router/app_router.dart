@@ -16,6 +16,7 @@ import 'package:flowtop/features/notifications/presentation/pages/notifications_
 import 'package:flowtop/features/projects/presentation/pages/project_create_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_detail_page.dart';
 import 'package:flowtop/features/projects/presentation/pages/project_list_page.dart';
+import 'package:flowtop/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:flowtop/features/profile/presentation/pages/profile_page.dart';
 import 'package:flowtop/features/statistics/presentation/pages/statistics_page.dart';
 import 'package:flowtop/features/tasks/presentation/pages/task_create_page.dart';
@@ -27,6 +28,7 @@ import 'package:flowtop/features/workspaces/presentation/pages/workspace_detail_
 import 'package:flowtop/features/workspaces/presentation/pages/workspace_invitations_page.dart';
 import 'package:flowtop/features/workspaces/presentation/pages/workspace_list_page.dart';
 import 'package:flowtop/features/workspaces/presentation/pages/workspace_members_page.dart';
+import 'package:flowtop/features/workspaces/presentation/pages/my_invitations_page.dart';
 
 /// Application router using GoRouter.
 ///
@@ -277,6 +279,12 @@ GoRouter createAppRouter({
                       workspaceId: state.pathParameters['workspaceId']!,
                     ),
                   ),
+                  GoRoute(
+                    path: _subPath(
+                        AppRoutes.workspaces, AppRoutes.myInvitations),
+                    name: 'myInvitations',
+                    builder: (context, state) => const MyInvitationsPage(),
+                  ),
                 ],
               ),
             ],
@@ -288,6 +296,13 @@ GoRouter createAppRouter({
                 path: AppRoutes.profile,
                 name: 'profile',
                 builder: (context, state) => const ProfilePage(),
+                routes: [
+                  GoRoute(
+                    path: _subPath(AppRoutes.profile, AppRoutes.profileEdit),
+                    name: 'profileEdit',
+                    builder: (context, state) => const ProfileEditPage(),
+                  ),
+                ],
               ),
             ],
           ),

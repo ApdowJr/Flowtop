@@ -28,6 +28,14 @@ class ProfilePage extends ConsumerWidget {
             if (user?.email != null) ...[const SizedBox(height: 4), Text(user!.email!, style: theme.textTheme.bodyMedium, textAlign: TextAlign.center)],
           ]),
         ),
+        const SizedBox(height: 16),
+        Card(margin: EdgeInsets.zero, child: ListTile(
+          leading: const Icon(Icons.edit_outlined),
+          title: const Text('Edit profile'),
+          subtitle: const Text('Change the name teammates see'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => context.go(AppRoutes.profileEdit),
+        )),
         const SizedBox(height: 28),
         Text('PREFERENCES', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 1.1, color: theme.colorScheme.primary)),
         const SizedBox(height: 10),
@@ -38,7 +46,7 @@ class ProfilePage extends ConsumerWidget {
           value: isDark,
           onChanged: (value) {
             ref.read(themeModeProvider.notifier).state = value ? ThemeMode.dark : ThemeMode.light;
-            ref.read(preferencesProvider)?.setString('theme_mode', value ? 'dark' : 'light');
+            ref.read(preferencesProvider)?.setString(AppPrefs.themeMode, value ? 'dark' : 'light');
           },
         )),
         const SizedBox(height: 28),

@@ -35,6 +35,14 @@ class AppColors {
   static const Color shadow = Color(0x1A000000);
 }
 
+/// Keys of the values stored in SharedPreferences.
+class AppPrefs {
+  AppPrefs._();
+
+  static const String themeMode = 'theme_mode';
+  static const String onboardingSeen = 'onboarding_seen';
+}
+
 /// App strings (English UI copy).
 class AppStrings {
   AppStrings._();
@@ -86,6 +94,8 @@ class AppStrings {
   static const String onboardingTitle3 = 'Never miss a deadline';
   static const String onboardingBody3 = 'Set due dates, reminders, and track progress across your calendar.';
   static const String getStarted = 'Get started';
+  static const String skip = 'Skip';
+  static const String next = 'Next';
 
   // Dashboard
   static const String dashboard = 'Dashboard';
@@ -223,9 +233,11 @@ class AppRoutes {
   static const String workspaceDetail = '/workspaces/detail';
   static const String workspaceMembers = '/workspaces/members';
   static const String workspaceInvitations = '/workspaces/invitations';
+  static const String myInvitations = '/workspaces/my-invitations';
 
   // Profile tab
   static const String profile = '/profile';
+  static const String profileEdit = '/profile/edit';
 
   static bool isAuth(String path) =>
       path == signIn || path == signUp || path == resetPassword || path == auth;

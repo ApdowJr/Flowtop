@@ -19,6 +19,13 @@ void main() {
       mockAuthRepository = MockAuthRepository();
       authStateController = StreamController<UserEntity?>();
 
+      // Default: no user signed in. The stubs must exist before the auth
+      // notifier is created, because it subscribes to the auth stream at once.
+      when(() => mockAuthRepository.currentUser).thenReturn(null);
+      when(() => mockAuthRepository.authStateChanges)
+          .thenAnswer((_) => authStateController.stream);
+      when(() => mockAuthRepository.signOut()).thenAnswer((_) async {});
+
       container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWithValue(mockAuthRepository),
@@ -27,11 +34,6 @@ void main() {
 
       // Activate the auth listener so ref.listen is registered
       container.read(selectedWorkspaceAuthListener);
-
-      // Default: no user signed in
-      when(() => mockAuthRepository.currentUser).thenReturn(null);
-      when(() => mockAuthRepository.authStateChanges)
-          .thenAnswer((_) => authStateController.stream);
     });
 
     tearDown(() {
